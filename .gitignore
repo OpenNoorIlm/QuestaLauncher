@@ -1,1 +1,8 @@
 ./build
+
+# Build output
+build/
+
+# Qt Creator / IDE user files
+.qtcreator/
+*.user

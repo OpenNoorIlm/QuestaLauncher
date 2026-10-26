@@ -1,2 +1,0 @@
-set(__QT_DEPLOY_TARGET_QuestaLauncher_FILE /home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Debug/QuestaLauncher)
-set(__QT_DEPLOY_TARGET_QuestaLauncher_TYPE EXECUTABLE)
