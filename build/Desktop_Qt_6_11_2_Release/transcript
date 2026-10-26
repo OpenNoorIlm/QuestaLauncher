@@ -1,0 +1,59 @@
+# Reading pref.tcl
+# //  Questa Altera Starter FPGA Edition-64
+# //  Version 2025.2 linux_x86_64 May 31 2025
+# //
+# // Unpublished work. Copyright 2025 Siemens
+# //
+# // This material contains trade secrets or otherwise confidential information
+# // owned by Siemens Industry Software Inc. or its affiliates (collectively,
+# // "SISW"), or its licensors. Access to and use of this information is strictly
+# // limited as set forth in the Customer's applicable agreements with SISW.
+# //
+# // This material may not be copied, distributed, or otherwise disclosed outside
+# // of the Customer's facilities without the express written permission of SISW,
+# // and may not be used in any way not expressly authorized by SISW.
+# //
+# cd /home/bismillah/Downloads/SystemVerilogCourse/ALU_Lesson45&46
+#  do /home/bismillah/Downloads/SystemVerilogCourse/ALU_Lesson45&46/run.do
+# Questa Altera Starter FPGA Edition-64 vlog 2025.2 Compiler 2025.05 May 31 2025
+# Start time: 12:44:59 on Oct 26,2026
+# vlog -reportprogress 300 -work work alu.sv alu_tb.sv 
+# ** Note: (vlog-220) '/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/../modelsim.ini' is used as the ini file.
+# -- Compiling module alu
+# -- Compiling module alu_tb
+# 
+# Top level modules:
+# 	alu_tb
+# End time: 12:44:59 on Oct 26,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Altera Starter FPGA Edition-64 vopt 2025.2 Compiler 2025.05 May 31 2025
+# ** Warning: (vopt-10908) Some optimizations are turned off because the +acc switch is in effect.
+# Start time: 12:44:59 on Oct 26,2026
+# vopt -reportprogress 300 "+acc" work.alu_tb -o alu_tb_opt 
+# ** Note: (vopt-220) '/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/../modelsim.ini' is used as the ini file.
+# 
+# Top level modules:
+# 	alu_tb
+# 
+# Analyzing design...
+# -- Loading module alu_tb
+# -- Loading module alu
+# Optimizing 2 design-units (inlining 0/2 module instances):
+# -- Optimizing module alu_tb(fast)
+# -- Optimizing module alu(fast)
+# Optimized design name is alu_tb_opt
+# End time: 12:45:00 on Oct 26,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 1
+# ** Note: (vsim-220) '/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/../modelsim.ini' is used as the ini file.
+# vsim alu_tb_opt 
+# Start time: 12:45:00 on Oct 26,2026
+# Loading sv_std.std
+# Loading work.alu_tb(fast)
+# Loading work.alu(fast)
+# TEST PASSED
+# ** Note: $finish    : alu_tb.sv(75)
+#    Time: 12 ns  Iteration: 0  Instance: /alu_tb
+# 1
+# Break in Module alu_tb at alu_tb.sv line 75
+# End time: 12:45:13 on Oct 26,2026, Elapsed time: 0:00:13
+# Errors: 0, Warnings: 0

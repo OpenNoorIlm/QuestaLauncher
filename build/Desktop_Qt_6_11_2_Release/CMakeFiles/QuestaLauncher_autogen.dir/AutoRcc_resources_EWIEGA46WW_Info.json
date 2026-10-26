@@ -1,0 +1,22 @@
+{
+	"BUILD_DIR" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/QuestaLauncher_autogen",
+	"CMAKE_BINARY_DIR" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/bismillah/QuestaLauncher",
+	"CMAKE_SOURCE_DIR" : "/home/bismillah/QuestaLauncher",
+	"CROSS_CONFIG" : false,
+	"GENERATOR" : "Unix Makefiles",
+	"INCLUDE_DIR" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/QuestaLauncher_autogen/include",
+	"INPUTS" : [ "/home/bismillah/QuestaLauncher/questa_launcher.svg" ],
+	"LOCK_FILE" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/QuestaLauncher_autogen.dir/AutoRcc_resources_EWIEGA46WW_Lock.lock",
+	"MULTI_CONFIG" : false,
+	"OPTIONS" : [ "-name", "resources" ],
+	"OUTPUT_CHECKSUM" : "EWIEGA46WW",
+	"OUTPUT_NAME" : "qrc_resources.cpp",
+	"RCC_EXECUTABLE" : "/home/bismillah/Qt/6.11.2/gcc_64/libexec/rcc",
+	"RCC_LIST_OPTIONS" : [ "--list" ],
+	"SETTINGS_FILE" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/QuestaLauncher_autogen.dir/AutoRcc_resources_EWIEGA46WW_Used.txt",
+	"SOURCE" : "/home/bismillah/QuestaLauncher/resources.qrc",
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

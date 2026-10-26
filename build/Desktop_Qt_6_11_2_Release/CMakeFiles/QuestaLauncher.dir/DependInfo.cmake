@@ -1,0 +1,28 @@
+
+# Consider dependencies only in project.
+set(CMAKE_DEPENDS_IN_PROJECT_ONLY OFF)
+
+# The set of languages for which implicit dependencies are needed:
+set(CMAKE_DEPENDS_LANGUAGES
+  )
+
+# The set of dependency files which are needed:
+set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "" "QuestaLauncher_autogen/timestamp" "custom" "QuestaLauncher_autogen/deps"
+  "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/QuestaLauncher_autogen/EWIEGA46WW/qrc_resources.cpp" "CMakeFiles/QuestaLauncher.dir/QuestaLauncher_autogen/EWIEGA46WW/qrc_resources.cpp.o" "gcc" "CMakeFiles/QuestaLauncher.dir/QuestaLauncher_autogen/EWIEGA46WW/qrc_resources.cpp.o.d"
+  "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/QuestaLauncher_autogen/mocs_compilation.cpp" "CMakeFiles/QuestaLauncher.dir/QuestaLauncher_autogen/mocs_compilation.cpp.o" "gcc" "CMakeFiles/QuestaLauncher.dir/QuestaLauncher_autogen/mocs_compilation.cpp.o.d"
+  "/home/bismillah/QuestaLauncher/main.cpp" "CMakeFiles/QuestaLauncher.dir/main.cpp.o" "gcc" "CMakeFiles/QuestaLauncher.dir/main.cpp.o.d"
+  "/home/bismillah/QuestaLauncher/mainwindow.cpp" "CMakeFiles/QuestaLauncher.dir/mainwindow.cpp.o" "gcc" "CMakeFiles/QuestaLauncher.dir/mainwindow.cpp.o.d"
+  "/home/bismillah/QuestaLauncher/prioritydialog.cpp" "CMakeFiles/QuestaLauncher.dir/prioritydialog.cpp.o" "gcc" "CMakeFiles/QuestaLauncher.dir/prioritydialog.cpp.o.d"
+  )
+
+# Targets to which this target links which contain Fortran sources.
+set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
+  )
+
+# Targets to which this target links which contain Fortran sources.
+set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+  )
+
+# Fortran module output directory.
+set(CMAKE_Fortran_TARGET_MODULE_DIR "")

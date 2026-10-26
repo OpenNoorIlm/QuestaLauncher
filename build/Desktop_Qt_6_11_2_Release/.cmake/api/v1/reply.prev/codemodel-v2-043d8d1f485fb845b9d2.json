@@ -1,0 +1,78 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Release-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "QuestaLauncher",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "QuestaLauncher::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-QuestaLauncher-Release-91c462015e80e00e2c0e.json",
+					"name" : "QuestaLauncher",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "QuestaLauncher_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-QuestaLauncher_autogen-Release-10fc2141cf857e373c42.json",
+					"name" : "QuestaLauncher_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "QuestaLauncher_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-QuestaLauncher_autogen_timestamp_deps-Release-2aab3fb7260f77187f31.json",
+					"name" : "QuestaLauncher_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release",
+		"source" : "/home/bismillah/QuestaLauncher"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

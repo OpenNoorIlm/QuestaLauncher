@@ -1,0 +1,5 @@
+/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/QuestaLauncher.dir
+/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/edit_cache.dir
+/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/rebuild_cache.dir
+/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/QuestaLauncher_autogen_timestamp_deps.dir
+/home/bismillah/QuestaLauncher/build/Desktop_Qt_6_11_2_Release/CMakeFiles/QuestaLauncher_autogen.dir
