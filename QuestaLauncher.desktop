@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.1.0
+Type=Application
+Name=QuestaLauncher
+Comment=Qt6 launcher for Questa Intel FPGA Starter Edition
+Exec=QuestaLauncher %f
+Icon=questa_launcher
+Categories=Development;Electronics;
+Terminal=false
+StartupNotify=true
