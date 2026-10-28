@@ -1,13 +1,17 @@
 #include "mainwindow.h"
 #include "prioritydialog.h"
+#include "configdialog.h"
+#include "excludedialog.h"
 #include <QFileDialog>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QStringList>
 #include <QMessageBox>
 #include <QProcess>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QTimer>
 #include <QWidget>
 #include <QFrame>
@@ -15,7 +19,14 @@
 #include <QSvgRenderer>
 #include <QPixmap>
 #include <QGraphicsDropShadowEffect>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QGroupBox>
+#include <QSettings>
+#include <QScrollArea>
+#include <QLabel>
 
+// ─────────────────────────────────────────────────────────────────────────────
 static const QString STYLE = R"(
     QMainWindow, QWidget { background-color: #0d0d1a; color: #e0e0e0; }
     QLineEdit {
@@ -35,6 +46,18 @@ static const QString STYLE = R"(
         padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
     }
     QPushButton#priorityBtn:hover { background-color: #ffaa0022; }
+    QPushButton#configBtn {
+        background-color: transparent; color: #aaaaff;
+        border: 1px solid #aaaaff; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#configBtn:hover { background-color: #aaaaff18; }
+    QPushButton#excludeBtn {
+        background-color: transparent; color: #cc6666;
+        border: 1px solid #cc4444; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#excludeBtn:hover { background-color: #cc444418; }
     QPushButton#launchBtn {
         background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0057a8,stop:1 #00b4d8);
         color: white; border: none; border-radius: 8px;
@@ -44,6 +67,34 @@ static const QString STYLE = R"(
         background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0070cc,stop:1 #00d4f0);
     }
     QPushButton#launchBtn:pressed { background: #003d7a; }
+    QPushButton#launchBtnWarn {
+        background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #7a0000,stop:1 #cc2200);
+        color: white; border: none; border-radius: 8px;
+        font-size: 14px; font-weight: bold; letter-spacing: 1px;
+    }
+    QPushButton#launchBtnWarn:hover {
+        background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #990000,stop:1 #ee3300);
+    }
+    QPushButton#installBtn {
+        background-color: transparent; color: #00ff88;
+        border: 1px solid #00ff88; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#installBtn:hover { background-color: #00ff8822; }
+    QPushButton#licenseBtn {
+        background-color: transparent; color: #bb88ff;
+        border: 1px solid #bb88ff; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#licenseBtn:hover { background-color: #bb88ff22; }
+    /* Restore chip buttons inside the excluded panel */
+    QPushButton#restoreBtn {
+        background-color: #1a0000; color: #ff6666;
+        border: 1px solid #552222; border-radius: 4px;
+        font-family: 'Courier New', monospace; font-size: 10px;
+        padding: 2px 7px;
+    }
+    QPushButton#restoreBtn:hover { background-color: #330000; border-color: #cc4444; color: #ffaaaa; }
     QTextEdit {
         background-color: #080812; color: #00e5ff;
         border: 1px solid #1a1a3a; border-radius: 6px;
@@ -53,15 +104,176 @@ static const QString STYLE = R"(
         color: #446688; font-size: 10px;
         font-family: 'Courier New', monospace; letter-spacing: 2px;
     }
+    QLabel#licOk {
+        color: #00ff88; font-size: 10px; font-weight: bold;
+        font-family: 'Courier New', monospace;
+        padding: 3px 8px; border: 1px solid #00ff88; border-radius: 4px;
+        background-color: #001a0a;
+    }
+    QLabel#licBad {
+        color: #ff4444; font-size: 10px; font-weight: bold;
+        font-family: 'Courier New', monospace;
+        padding: 3px 8px; border: 1px solid #ff4444; border-radius: 4px;
+        background-color: #1a0000;
+    }
+    QLabel#chipLabel {
+        color: #ff6666; font-family: 'Courier New', monospace; font-size: 10px;
+    }
+    QLabel#noExclLabel {
+        color: #223344; font-family: 'Courier New', monospace; font-size: 10px;
+        padding: 2px 4px;
+    }
+    QGroupBox {
+        border: 1px solid #1a1a3a; border-radius: 6px;
+        margin-top: 6px; padding-top: 4px;
+        font-family: 'Courier New', monospace; font-size: 10px;
+        color: #446688;
+    }
+    QGroupBox#excludedBox {
+        border: 1px solid #331111;
+    }
+    QGroupBox::title {
+        subcontrol-origin: margin; subcontrol-position: top left;
+        padding: 0 4px; left: 8px; color: #446688;
+        font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 1px;
+    }
+    QScrollArea { border: none; background: transparent; }
+    QScrollBar:vertical {
+        background: #0d0d1a; width: 6px; border-radius: 3px;
+    }
+    QScrollBar::handle:vertical { background: #223344; border-radius: 3px; }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 )";
 
+// ── QSettings helpers ─────────────────────────────────────────────────────────
+QString MainWindow::settingVsim() const {
+    return QSettings("QuestaLauncher","QuestaLauncher")
+        .value("vsimPath", "/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/vsim").toString();
+}
+QString MainWindow::settingLicenseFile() const {
+    return QSettings("QuestaLauncher","QuestaLauncher")
+        .value("licenseFile", "/home/bismillah/.licenses/questa_license.dat").toString();
+}
+QString MainWindow::settingSaltServer() const {
+    return QSettings("QuestaLauncher","QuestaLauncher")
+        .value("saltServer", "/home/bismillah/.licenses/questa_license.dat").toString();
+}
+QString MainWindow::settingMtiVcoMode() const {
+    return QSettings("QuestaLauncher","QuestaLauncher")
+        .value("mtiVcoMode", "64").toString();
+}
+QString MainWindow::settingDefaultFolder() const {
+    return QSettings("QuestaLauncher","QuestaLauncher")
+        .value("defaultFolder", "/home/bismillah/Downloads/SystemVerilogCourse/").toString();
+}
+
+// ── license status badge ──────────────────────────────────────────────────────
+void MainWindow::updateLicenseStatus()
+{
+    bool ok = !settingLicenseFile().isEmpty() && QFile::exists(settingLicenseFile());
+    if (ok) {
+        m_licenseStatusLabel->setObjectName("licOk");
+        m_licenseStatusLabel->setText("✓ LICENSE OK");
+    } else {
+        m_licenseStatusLabel->setObjectName("licBad");
+        m_licenseStatusLabel->setText("⚠ LICENSE NOT SET — configure before launching!");
+    }
+    m_licenseStatusLabel->style()->unpolish(m_licenseStatusLabel);
+    m_licenseStatusLabel->style()->polish(m_licenseStatusLabel);
+
+    if (ok) {
+        m_launchBtn->setObjectName("launchBtn");
+        m_launchBtn->setText("▶   LAUNCH QUESTA");
+    } else {
+        m_launchBtn->setObjectName("launchBtnWarn");
+        m_launchBtn->setText("⚠   LAUNCH QUESTA  (no license!)");
+    }
+    m_launchBtn->style()->unpolish(m_launchBtn);
+    m_launchBtn->style()->polish(m_launchBtn);
+}
+
+// ── activeFiles: all .sv in dir, minus excluded ───────────────────────────────
+QStringList MainWindow::activeFiles(const QString &dir) const
+{
+    QDir d(dir);
+    QStringList all = d.entryList(QStringList() << "*.sv", QDir::Files);
+    QStringList result;
+    for (const QString &f : all)
+        if (!m_excludedFiles.contains(f))
+            result << f;
+    return result;
+}
+
+// ── chip panel ────────────────────────────────────────────────────────────────
+void MainWindow::rebuildExcludedChips()
+{
+    // Remove all existing chip widgets
+    QLayoutItem *item;
+    while ((item = m_chipLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) item->widget()->deleteLater();
+        delete item;
+    }
+
+    if (m_excludedFiles.isEmpty()) {
+        auto *lbl = new QLabel("no files excluded");
+        lbl->setObjectName("noExclLabel");
+        m_chipLayout->addWidget(lbl);
+        m_excludedBox->setTitle("EXCLUDED FILES");
+    } else {
+        for (const QString &f : m_excludedFiles) {
+            QHBoxLayout *row = new QHBoxLayout();
+            row->setSpacing(6);
+            row->setContentsMargins(0, 0, 0, 0);
+
+            auto *lbl = new QLabel(f);
+            lbl->setObjectName("chipLabel");
+
+            auto *btn = new QPushButton("↩ restore");
+            btn->setObjectName("restoreBtn");
+            btn->setFixedHeight(20);
+            btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+            QString fname = f;   // capture for lambda
+            connect(btn, &QPushButton::clicked, this, [this, fname](){
+                restoreFile(fname);
+            });
+
+            row->addWidget(lbl);
+            row->addStretch();
+            row->addWidget(btn);
+
+            QWidget *rowW = new QWidget();
+            rowW->setLayout(row);
+            rowW->setStyleSheet("background:transparent;");
+            m_chipLayout->addWidget(rowW);
+        }
+        m_excludedBox->setTitle(
+            QString("EXCLUDED FILES  [%1]").arg(m_excludedFiles.size()));
+    }
+    m_chipLayout->addStretch();
+
+    // Reset custom order since the active file set has changed
+    if (!m_customOrder.isEmpty()) {
+        m_customOrder.clear();
+        m_priorityBtn->setText("⇅   SET COMPILE ORDER");
+        m_priorityBtn->setStyleSheet("");
+    }
+
+    // Update exclude button label
+    if (!m_excludedFiles.isEmpty())
+        m_excludeBtn->setText(
+            QString("✕   DISINCLUDE  [%1 hidden]").arg(m_excludedFiles.size()));
+    else
+        m_excludeBtn->setText("✕   DISINCLUDE");
+}
+
+// ── constructor ───────────────────────────────────────────────────────────────
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Questa Launcher");
-    setFixedSize(540, 460);
+    setFixedSize(560, 640);
     setStyleSheet(STYLE);
 
-    // Set window icon from SVG
     QIcon appIcon;
     QSvgRenderer renderer(QString(":/questa_launcher.svg"));
     QPixmap iconPix(256, 256);
@@ -75,12 +287,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     QWidget *central = new QWidget(this);
     setCentralWidget(central);
     QVBoxLayout *layout = new QVBoxLayout(central);
-    layout->setSpacing(10);
-    layout->setContentsMargins(20, 16, 20, 16);
+    layout->setSpacing(8);
+    layout->setContentsMargins(20, 14, 20, 14);
 
-    // SVG Logo in window
+    // Logo
     QSvgRenderer *svgRender = new QSvgRenderer(QString(":/questa_launcher.svg"), this);
-    QPixmap logoPix(72, 72);
+    QPixmap logoPix(64, 64);
     logoPix.fill(Qt::transparent);
     QPainter logoPainter(&logoPix);
     svgRender->render(&logoPainter);
@@ -96,6 +308,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     layout->addWidget(m_logoLabel);
     layout->addWidget(m_subtitleLabel);
+
+    m_licenseStatusLabel = new QLabel();
+    m_licenseStatusLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(m_licenseStatusLabel);
 
     QFrame *line = new QFrame();
     line->setFrameShape(QFrame::HLine);
@@ -113,11 +329,52 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     pathRow->addWidget(m_browseBtn);
     layout->addLayout(pathRow);
 
-    // Priority button
-    m_priorityBtn = new QPushButton("⇅   SET COMPILE ORDER");
+    // ── EXCLUDED FILES panel ──────────────────────────────────────────────────
+    m_excludedBox = new QGroupBox("EXCLUDED FILES");
+    m_excludedBox->setObjectName("excludedBox");
+    QVBoxLayout *exBoxLayout = new QVBoxLayout(m_excludedBox);
+    exBoxLayout->setContentsMargins(8, 6, 8, 6);
+    exBoxLayout->setSpacing(0);
+
+    // Scrollable chip area (max 3 rows visible)
+    QScrollArea *scroll = new QScrollArea();
+    scroll->setWidgetResizable(true);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scroll->setFixedHeight(72);
+    scroll->setStyleSheet("QScrollArea { background: transparent; border: none; }");
+
+    m_chipContainer = new QWidget();
+    m_chipContainer->setStyleSheet("background: transparent;");
+    m_chipLayout = new QVBoxLayout(m_chipContainer);
+    m_chipLayout->setSpacing(2);
+    m_chipLayout->setContentsMargins(0, 0, 0, 0);
+    scroll->setWidget(m_chipContainer);
+
+    exBoxLayout->addWidget(scroll);
+    layout->addWidget(m_excludedBox);
+
+    // ── Action row: priority + disinclude + config ────────────────────────────
+    QHBoxLayout *actionRow = new QHBoxLayout();
+    actionRow->setSpacing(6);
+
+    m_priorityBtn = new QPushButton("⇅   COMPILE ORDER");
     m_priorityBtn->setObjectName("priorityBtn");
-    m_priorityBtn->setFixedHeight(36);
-    layout->addWidget(m_priorityBtn);
+    m_priorityBtn->setFixedHeight(34);
+
+    m_excludeBtn = new QPushButton("✕   DISINCLUDE");
+    m_excludeBtn->setObjectName("excludeBtn");
+    m_excludeBtn->setFixedHeight(34);
+
+    m_configBtn = new QPushButton("⚙   CONFIG");
+    m_configBtn->setObjectName("configBtn");
+    m_configBtn->setFixedHeight(34);
+    m_configBtn->setFixedWidth(110);
+
+    actionRow->addWidget(m_priorityBtn);
+    actionRow->addWidget(m_excludeBtn);
+    actionRow->addWidget(m_configBtn);
+    layout->addLayout(actionRow);
 
     // Launch button
     m_launchBtn = new QPushButton("▶   LAUNCH QUESTA");
@@ -130,21 +387,52 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_launchBtn->setGraphicsEffect(glow);
     layout->addWidget(m_launchBtn);
 
+    // ── Install section ───────────────────────────────────────────────────────
+    QGroupBox *installBox = new QGroupBox("INSTALL");
+    QHBoxLayout *instRow = new QHBoxLayout(installBox);
+    instRow->setContentsMargins(10, 4, 10, 6);
+    instRow->setSpacing(10);
+    m_installBtn = new QPushButton("⬇   INSTALL QUESTA");
+    m_installBtn->setObjectName("installBtn");
+    m_installBtn->setFixedHeight(34);
+    m_licenseBtn = new QPushButton("🔑   LICENSE REQUEST");
+    m_licenseBtn->setObjectName("licenseBtn");
+    m_licenseBtn->setFixedHeight(34);
+    instRow->addWidget(m_installBtn);
+    instRow->addWidget(m_licenseBtn);
+    layout->addWidget(installBox);
+
     // Log
     m_log = new QTextEdit();
     m_log->setReadOnly(true);
     m_log->setPlaceholderText("// output will appear here...");
     layout->addWidget(m_log);
 
-    connect(m_browseBtn,  &QPushButton::clicked, this, &MainWindow::browseFolder);
-    connect(m_priorityBtn,&QPushButton::clicked, this, &MainWindow::openPriorityDialog);
-    connect(m_launchBtn,  &QPushButton::clicked, this, &MainWindow::launch);
+    connect(m_browseBtn,   &QPushButton::clicked, this, &MainWindow::browseFolder);
+    connect(m_priorityBtn, &QPushButton::clicked, this, &MainWindow::openPriorityDialog);
+    connect(m_excludeBtn,  &QPushButton::clicked, this, &MainWindow::openExcludeDialog);
+    connect(m_configBtn,   &QPushButton::clicked, this, &MainWindow::openConfig);
+    connect(m_launchBtn,   &QPushButton::clicked, this, &MainWindow::launch);
+    connect(m_installBtn,  &QPushButton::clicked, this, &MainWindow::installQuesta);
+    connect(m_licenseBtn,  &QPushButton::clicked, this, &MainWindow::openLicenseRequest);
+
+    // Also clear exclusions when a new folder is picked
+    connect(m_pathEdit, &QLineEdit::textChanged, this, [this](){
+        if (!m_excludedFiles.isEmpty()) {
+            m_excludedFiles.clear();
+            rebuildExcludedChips();
+        }
+    });
 
     QStringList args = QCoreApplication::arguments();
     if (args.size() > 1 && QDir(args[1]).exists())
         m_pathEdit->setText(args[1]);
+
+    rebuildExcludedChips();   // start with empty panel
+    updateLicenseStatus();
 }
 
+// ── paint ─────────────────────────────────────────────────────────────────────
 void MainWindow::paintEvent(QPaintEvent *event)
 {
     QMainWindow::paintEvent(event);
@@ -160,19 +448,25 @@ void MainWindow::paintEvent(QPaintEvent *event)
     p.drawLine(width()-40,height()-1,width()-1,height()-1);
 }
 
+// ── browse folder ─────────────────────────────────────────────────────────────
 void MainWindow::browseFolder()
 {
-    QString dir = QFileDialog::getExistingDirectory(
-        this, "Select Project Folder",
-        "/home/bismillah/Downloads/SystemVerilogCourse/");
+    QString startDir = m_pathEdit->text().isEmpty()
+                       ? settingDefaultFolder()
+                       : m_pathEdit->text();
+    QString dir = QFileDialog::getExistingDirectory(this, "Select Project Folder", startDir);
     if (!dir.isEmpty()) {
         m_pathEdit->setText(dir);
-        m_customOrder.clear();  // reset order when folder changes
-        m_priorityBtn->setText("⇅   SET COMPILE ORDER");
+        m_customOrder.clear();
+        m_priorityBtn->setText("⇅   COMPILE ORDER");
+        m_priorityBtn->setStyleSheet("");
+        m_excludedFiles.clear();
+        rebuildExcludedChips();
     }
 }
 
-void MainWindow::openPriorityDialog()
+// ── open exclude dialog ───────────────────────────────────────────────────────
+void MainWindow::openExcludeDialog()
 {
     QString dir = m_pathEdit->text().trimmed();
     if (dir.isEmpty() || !QDir(dir).exists()) {
@@ -181,14 +475,73 @@ void MainWindow::openPriorityDialog()
     }
 
     QDir d(dir);
-    QStringList files = d.entryList(QStringList() << "*.sv", QDir::Files);
-    if (files.isEmpty()) {
-        QMessageBox::warning(this, "Error", "No .sv files found in folder.");
+    QStringList allSv = d.entryList(QStringList() << "*.sv", QDir::Files);
+    if (allSv.isEmpty()) {
+        QMessageBox::information(this, "No files", "No .sv files found in the selected folder.");
         return;
     }
 
-    // Pre-populate with existing custom order if any
-    if (!m_customOrder.isEmpty()) files = m_customOrder;
+    ExcludeDialog dlg(allSv, m_excludedFiles, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        m_excludedFiles = dlg.excludedFiles();
+        rebuildExcludedChips();
+
+        if (!m_excludedFiles.isEmpty()) {
+            log(QString("<span style='color:#cc6666'>✕ %1 file(s) excluded from compilation:</span>")
+                    .arg(m_excludedFiles.size()));
+            for (const QString &f : m_excludedFiles)
+                log(QString("<span style='color:#552222'>    %1</span>").arg(f));
+        } else {
+            log("<span style='color:#00ff88'>✓ All files included (no exclusions).</span>");
+        }
+    }
+}
+
+// ── restore single file ───────────────────────────────────────────────────────
+void MainWindow::restoreFile(const QString &filename)
+{
+    m_excludedFiles.removeAll(filename);
+    rebuildExcludedChips();
+    log(QString("<span style='color:#00ff88'>↩ Restored: %1</span>").arg(filename));
+}
+
+// ── config dialog ─────────────────────────────────────────────────────────────
+void MainWindow::openConfig()
+{
+    ConfigDialog dlg(this);
+    if (dlg.exec() == QDialog::Accepted) {
+        log("<span style='color:#aaaaff'>⚙ Configuration saved.</span>");
+        updateLicenseStatus();
+    }
+}
+
+// ── priority dialog (only shows active files) ─────────────────────────────────
+void MainWindow::openPriorityDialog()
+{
+    QString dir = m_pathEdit->text().trimmed();
+    if (dir.isEmpty() || !QDir(dir).exists()) {
+        QMessageBox::warning(this, "Error", "Please select a project folder first.");
+        return;
+    }
+
+    QStringList files = activeFiles(dir);
+    if (files.isEmpty()) {
+        QMessageBox::warning(this, "Error",
+            "No .sv files available (all may be excluded).\n"
+            "Restore some files from the EXCLUDED FILES panel first.");
+        return;
+    }
+
+    if (!m_customOrder.isEmpty()) {
+        // Keep only files that are still active
+        QStringList filtered;
+        for (const QString &f : m_customOrder)
+            if (files.contains(f)) filtered << f;
+        // Add any new active files not in the existing order
+        for (const QString &f : files)
+            if (!filtered.contains(f)) filtered << f;
+        files = filtered;
+    }
 
     PriorityDialog dlg(files, this);
     if (dlg.exec() == QDialog::Accepted) {
@@ -198,35 +551,42 @@ void MainWindow::openPriorityDialog()
         for (const QString &f : m_customOrder)
             log(QString("<span style='color:#ffaa00'>  [%1] %2</span>").arg(i++).arg(f));
         m_priorityBtn->setText("⇅   ORDER SET  ✓");
-        m_priorityBtn->setStyleSheet(m_priorityBtn->styleSheet() +
+        m_priorityBtn->setStyleSheet(
             "QPushButton#priorityBtn { color: #00ff88; border-color: #00ff88; }");
     }
 }
 
+// ── generate run.do (respects exclusions) ─────────────────────────────────────
 QString MainWindow::generateRunDo(const QString &dir)
 {
-    QDir d(dir);
-
-    // Use custom order if set, otherwise auto-detect
     QStringList allFiles;
+
     if (!m_customOrder.isEmpty()) {
-        allFiles = m_customOrder;
+        // Custom order: strip any that got excluded since order was set
+        for (const QString &f : m_customOrder)
+            if (!m_excludedFiles.contains(f)) allFiles << f;
     } else {
-        QStringList tbFiles    = d.entryList(QStringList() << "*_tb.sv", QDir::Files);
-        QStringList otherFiles = d.entryList(QStringList() << "*.sv",    QDir::Files);
-        if (tbFiles.isEmpty()) return QString();
-        for (const QString &f : tbFiles) otherFiles.removeAll(f);
+        QStringList active = activeFiles(dir);
+        if (active.isEmpty()) return QString();
+
+        // Split into tb and non-tb, preserving the auto-ordering convention
+        QStringList tbFiles, otherFiles;
+        for (const QString &f : active) {
+            if (f.endsWith("_tb.sv")) tbFiles  << f;
+            else                      otherFiles << f;
+        }
         allFiles = otherFiles + tbFiles;
     }
 
-    // Find tb module (last *_tb.sv in list)
+    if (allFiles.isEmpty()) return QString();
+
+    // Top module: last *_tb.sv, or last file if none
     QString tbFile;
     for (const QString &f : allFiles)
         if (f.endsWith("_tb.sv")) tbFile = f;
-    if (tbFile.isEmpty()) return QString();
+    if (tbFile.isEmpty()) tbFile = allFiles.last();
 
-    QString tbModule = tbFile;
-    tbModule.remove(".sv");
+    QString tbModule = tbFile; tbModule.remove(".sv");
     QString vlogFiles = allFiles.join(" ");
 
     QString content;
@@ -240,13 +600,12 @@ QString MainWindow::generateRunDo(const QString &dir)
 
     QFile f(dir + "/run.do");
     if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&f);
-        out << content;
-        f.close();
+        QTextStream out(&f); out << content; f.close();
     }
     return tbModule;
 }
 
+// ── launch ────────────────────────────────────────────────────────────────────
 void MainWindow::launch()
 {
     QString dir = m_pathEdit->text().trimmed();
@@ -255,25 +614,48 @@ void MainWindow::launch()
         return;
     }
 
-    // Always regenerate run.do so compile order is up to date
+    QString licPath = settingLicenseFile();
+    if (licPath.isEmpty() || !QFile::exists(licPath)) {
+        log("<span style='color:#ff4444'>✗ BLOCKED: License file not configured or not found!</span>");
+        int r = QMessageBox::critical(this, "License Not Configured",
+            "Questa will not start without a valid license file.\n\n"
+            "Open Configuration now to set it up?",
+            QMessageBox::Yes | QMessageBox::Cancel);
+        if (r == QMessageBox::Yes) openConfig();
+        return;
+    }
+
+    if (!m_excludedFiles.isEmpty())
+        log(QString("<span style='color:#cc6666'>✕ %1 file(s) excluded from this run.</span>")
+                .arg(m_excludedFiles.size()));
+
     log("<span style='color:#ffaa00'>⚡ Generating run.do...</span>");
     QString tb = generateRunDo(dir);
     if (tb.isEmpty()) {
-        log("<span style='color:#ff4444'>✗ ERROR: No *_tb.sv found!</span>");
-        QMessageBox::critical(this, "Error", "No *_tb.sv testbench found in:\n" + dir);
+        log("<span style='color:#ff4444'>✗ ERROR: No simulation files remaining after exclusions!</span>");
+        QMessageBox::critical(this, "Error",
+            "No .sv files left to compile.\n"
+            "Restore some files from the EXCLUDED FILES panel.");
         return;
     }
-    log("<span style='color:#00ff88'>✓ run.do ready for: " + tb + "</span>");
+    log("<span style='color:#00ff88'>✓ run.do ready — top: " + tb + "</span>");
+
+    QString vsim    = settingVsim();
+    QString lic     = settingLicenseFile();
+    QString salt    = settingSaltServer();
+    QString mtiMode = settingMtiVcoMode();
+
+    log(QString("<span style='color:#446688'>  vsim:    %1</span>").arg(vsim));
+    log(QString("<span style='color:#446688'>  license: %1</span>").arg(lic));
     log("<span style='color:#00e5ff'>▶ Launching Questa...</span>");
 
-    QString vsim = "/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/vsim";
     QStringList vsimArgs = {"-gui", "-do", QString("cd %1; do %1/run.do").arg(dir)};
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("PATH", "/home/bismillah/altera/25.1std/questa_fse/linux_x86_64:" + env.value("PATH"));
-    env.insert("LM_LICENSE_FILE",    "/home/bismillah/.licenses/questa_license.dat");
-    env.insert("SALT_LICENSE_SERVER","/home/bismillah/.licenses/questa_license.dat");
-    env.insert("MTI_VCO_MODE", "64");
+    env.insert("PATH", QFileInfo(vsim).absolutePath() + ":" + env.value("PATH"));
+    env.insert("LM_LICENSE_FILE",     lic);
+    env.insert("SALT_LICENSE_SERVER", salt.isEmpty() ? lic : salt);
+    env.insert("MTI_VCO_MODE",        mtiMode.isEmpty() ? "64" : mtiMode);
 
     QProcess *proc = new QProcess(this);
     proc->setProcessEnvironment(env);
@@ -284,6 +666,22 @@ void MainWindow::launch()
 
     log("<span style='color:#00ff88'>✓ Done — Questa is starting!</span>");
     QTimer::singleShot(1500, this, &QWidget::close);
+}
+
+// ── install / license ─────────────────────────────────────────────────────────
+void MainWindow::installQuesta()
+{
+    log("<span style='color:#00ff88'>⬇ Opening Questa FSE download page...</span>");
+    QDesktopServices::openUrl(QUrl(
+        "https://www.intel.com/content/www/us/en/software-kit/825277/"
+        "questa-intel-fpgas-standard-edition-software-version-23-1-1.html"));
+}
+
+void MainWindow::openLicenseRequest()
+{
+    log("<span style='color:#bb88ff'>🔑 Opening license request page...</span>");
+    QDesktopServices::openUrl(QUrl(
+        "https://licensing.intel.com/psg/s/sales-signup-evaluationlicenses"));
 }
 
 void MainWindow::log(const QString &msg)

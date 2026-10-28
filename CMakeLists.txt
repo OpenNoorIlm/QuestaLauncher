@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(QuestaLauncher VERSION 1.0 LANGUAGES CXX)
+project(QuestaLauncher VERSION 1.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,6 +15,10 @@ qt_add_executable(QuestaLauncher
     mainwindow.cpp
     prioritydialog.h
     prioritydialog.cpp
+    configdialog.h
+    configdialog.cpp
+    excludedialog.h
+    excludedialog.cpp
     resources.qrc
 )
 
