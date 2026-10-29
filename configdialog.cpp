@@ -92,7 +92,7 @@ static QHBoxLayout* makeRow(QLineEdit *edit, QPushButton *btn)
 ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle("Questa Launcher — Configuration");
-    setFixedSize(580, 480);
+    setFixedSize(580, 560);   // taller to fit extra rows
     setStyleSheet(CFG_STYLE);
     setModal(true);
 
@@ -155,6 +155,23 @@ ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
     grid->addWidget(m_folderEdit,                2, 1);
     grid->addWidget(folBrowse,                   2, 2);
 
+    // ── Tool binaries (optional — used by Compile For) ────────────────────────
+    m_quartusEdit = new QLineEdit();
+    m_quartusEdit->setPlaceholderText("/path/to/quartus  (optional — for Compile For → Quartus)");
+    auto *quartusBrowse = new QPushButton("Browse"); quartusBrowse->setObjectName("browseSmall");
+
+    m_gowinEdit = new QLineEdit();
+    m_gowinEdit->setPlaceholderText("/path/to/gw_ide  (optional — for Compile For → Gowin EDA)");
+    auto *gowinBrowse = new QPushButton("Browse"); gowinBrowse->setObjectName("browseSmall");
+
+    grid->addWidget(makeLabel("Quartus binary"), 3, 0);
+    grid->addWidget(m_quartusEdit,               3, 1);
+    grid->addWidget(quartusBrowse,               3, 2);
+
+    grid->addWidget(makeLabel("Gowin IDE binary"), 4, 0);
+    grid->addWidget(m_gowinEdit,                  4, 1);
+    grid->addWidget(gowinBrowse,                  4, 2);
+
     root->addWidget(pathsBox);
 
     // ── Environment group ────────────────────────────────────────────────────
@@ -202,9 +219,11 @@ ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
     root->addLayout(btnRow);
 
     // ── Wire up ──────────────────────────────────────────────────────────────
-    connect(vsimBrowse,  &QPushButton::clicked, this, &ConfigDialog::browseVsim);
-    connect(licBrowse,   &QPushButton::clicked, this, &ConfigDialog::browseLicense);
-    connect(folBrowse,   &QPushButton::clicked, this, &ConfigDialog::browseFolder);
+    connect(vsimBrowse,    &QPushButton::clicked, this, &ConfigDialog::browseVsim);
+    connect(licBrowse,     &QPushButton::clicked, this, &ConfigDialog::browseLicense);
+    connect(folBrowse,     &QPushButton::clicked, this, &ConfigDialog::browseFolder);
+    connect(quartusBrowse, &QPushButton::clicked, this, &ConfigDialog::browseQuartus);
+    connect(gowinBrowse,   &QPushButton::clicked, this, &ConfigDialog::browseGowin);
     connect(cancelBtn,   &QPushButton::clicked, this, &QDialog::reject);
     connect(m_saveBtn,   &QPushButton::clicked, this, [this]{ saveSettings(); accept(); });
 
@@ -222,6 +241,8 @@ QString ConfigDialog::licenseFile()   const { return m_licenseEdit->text().trimm
 QString ConfigDialog::saltServer()    const { return m_saltEdit->text().trimmed(); }
 QString ConfigDialog::mtiVcoMode()    const { return m_mtiEdit->text().trimmed(); }
 QString ConfigDialog::defaultFolder() const { return m_folderEdit->text().trimmed(); }
+QString ConfigDialog::quartusPath()   const { return m_quartusEdit->text().trimmed(); }
+QString ConfigDialog::gowinPath()     const { return m_gowinEdit->text().trimmed(); }
 
 // ── browse slots ─────────────────────────────────────────────────────────────
 void ConfigDialog::browseVsim()
@@ -244,6 +265,20 @@ void ConfigDialog::browseFolder()
     QString d = QFileDialog::getExistingDirectory(this, "Default project folder",
         m_folderEdit->text().isEmpty() ? QDir::homePath() : m_folderEdit->text());
     if (!d.isEmpty()) m_folderEdit->setText(d);
+}
+
+void ConfigDialog::browseQuartus()
+{
+    QString f = QFileDialog::getOpenFileName(this, "Select Quartus binary",
+        m_quartusEdit->text().isEmpty() ? "/home" : m_quartusEdit->text());
+    if (!f.isEmpty()) m_quartusEdit->setText(f);
+}
+
+void ConfigDialog::browseGowin()
+{
+    QString f = QFileDialog::getOpenFileName(this, "Select Gowin IDE binary",
+        m_gowinEdit->text().isEmpty() ? "/home" : m_gowinEdit->text());
+    if (!f.isEmpty()) m_gowinEdit->setText(f);
 }
 
 // ── validation ───────────────────────────────────────────────────────────────
@@ -301,6 +336,8 @@ void ConfigDialog::loadSettings()
     m_mtiEdit->setText(s.value("mtiVcoMode", "64").toString());
     m_folderEdit->setText(s.value("defaultFolder",
         "/home/bismillah/Downloads/SystemVerilogCourse/").toString());
+    m_quartusEdit->setText(s.value("quartusPath", "").toString());
+    m_gowinEdit->setText(s.value("gowinPath", "").toString());
 }
 
 void ConfigDialog::saveSettings()
@@ -311,4 +348,6 @@ void ConfigDialog::saveSettings()
     s.setValue("saltServer",    m_saltEdit->text().trimmed());
     s.setValue("mtiVcoMode",    m_mtiEdit->text().trimmed());
     s.setValue("defaultFolder", m_folderEdit->text().trimmed());
+    s.setValue("quartusPath",   m_quartusEdit->text().trimmed());
+    s.setValue("gowinPath",     m_gowinEdit->text().trimmed());
 }

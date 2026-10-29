@@ -26,6 +26,8 @@
 #include <QSettings>
 #include <QScrollArea>
 #include <QLabel>
+#include <QCheckBox>
+#include <QDateTime>
 
 // ─────────────────────────────────────────────────────────────────────────────
 static const QString STYLE = R"(
@@ -150,6 +152,27 @@ static const QString STYLE = R"(
     }
     QScrollBar::handle:vertical { background: #223344; border-radius: 3px; }
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+
+    /* ── Compile For checkboxes ── */
+    QCheckBox {
+        font-family: 'Courier New', monospace; font-size: 11px; spacing: 7px;
+    }
+    QCheckBox::indicator {
+        width: 14px; height: 14px; border-radius: 3px; background-color: #0d0d1a;
+    }
+    QCheckBox#chkQuesta                { color: #00e5ff; }
+    QCheckBox#chkQuesta::indicator     { border: 1px solid #00e5ff; }
+    QCheckBox#chkQuesta::indicator:checked { background-color: #0057a8; border-color: #00e5ff; }
+
+    QCheckBox#chkQuartus               { color: #ffaa00; }
+    QCheckBox#chkQuartus::indicator    { border: 1px solid #ffaa00; }
+    QCheckBox#chkQuartus::indicator:checked { background-color: #7a4400; border-color: #ffaa00; }
+
+    QCheckBox#chkGowin                 { color: #88ff88; }
+    QCheckBox#chkGowin::indicator      { border: 1px solid #44aa44; }
+    QCheckBox#chkGowin::indicator:checked { background-color: #1a4a1a; border-color: #88ff88; }
+
+    QGroupBox#compileForBox { border-color: #1a2a1a; }
 )";
 
 // ── QSettings helpers ─────────────────────────────────────────────────────────
@@ -278,7 +301,7 @@ void MainWindow::rebuildExcludedChips()
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Questa Launcher");
-    setFixedSize(560, 640);
+    setFixedSize(560, 700);
     setStyleSheet(STYLE);
 
     QIcon appIcon;
@@ -387,6 +410,29 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     actionRow->addWidget(m_libBtn);
     actionRow->addWidget(m_configBtn);
     layout->addLayout(actionRow);
+
+    // ── COMPILE FOR section ───────────────────────────────────────────────────
+    QGroupBox *compileForBox = new QGroupBox("COMPILE FOR");
+    compileForBox->setObjectName("compileForBox");
+    QHBoxLayout *cfRow = new QHBoxLayout(compileForBox);
+    cfRow->setContentsMargins(12, 4, 12, 6);
+    cfRow->setSpacing(24);
+
+    m_chkQuesta  = new QCheckBox("⬡  Questa / Modelsim");
+    m_chkQuartus = new QCheckBox("◈  Quartus Prime");
+    m_chkGowin   = new QCheckBox("◆  Gowin EDA");
+
+    m_chkQuesta->setObjectName("chkQuesta");
+    m_chkQuartus->setObjectName("chkQuartus");
+    m_chkGowin->setObjectName("chkGowin");
+
+    m_chkQuesta->setChecked(true);   // default — this app is for Questa
+
+    cfRow->addWidget(m_chkQuesta);
+    cfRow->addWidget(m_chkQuartus);
+    cfRow->addWidget(m_chkGowin);
+    cfRow->addStretch();
+    layout->addWidget(compileForBox);
 
     // Launch button
     m_launchBtn = new QPushButton("▶   LAUNCH QUESTA");
@@ -655,7 +701,7 @@ QString MainWindow::generateRunDo(const QString &dir)
     return tbModule;
 }
 
-// ── launch ────────────────────────────────────────────────────────────────────
+// ── launch (dispatcher) ───────────────────────────────────────────────────────
 void MainWindow::launch()
 {
     QString dir = m_pathEdit->text().trimmed();
@@ -664,9 +710,25 @@ void MainWindow::launch()
         return;
     }
 
+    if (!m_chkQuesta->isChecked() && !m_chkQuartus->isChecked() && !m_chkGowin->isChecked()) {
+        QMessageBox::warning(this, "Nothing selected",
+            "Please tick at least one target in the COMPILE FOR section.");
+        return;
+    }
+
+    if (m_chkQuesta->isChecked())  launchForQuesta();
+    if (m_chkQuartus->isChecked()) launchForQuartus();
+    if (m_chkGowin->isChecked())   launchForGowin();
+}
+
+// ── Questa ────────────────────────────────────────────────────────────────────
+void MainWindow::launchForQuesta()
+{
+    QString dir = m_pathEdit->text().trimmed();
+
     QString licPath = settingLicenseFile();
     if (licPath.isEmpty() || !QFile::exists(licPath)) {
-        log("<span style='color:#ff4444'>✗ BLOCKED: License file not configured or not found!</span>");
+        log("<span style='color:#ff4444'>✗ [Questa] BLOCKED: License file not configured or not found!</span>");
         int r = QMessageBox::critical(this, "License Not Configured",
             "Questa will not start without a valid license file.\n\n"
             "Open Configuration now to set it up?",
@@ -679,16 +741,16 @@ void MainWindow::launch()
         log(QString("<span style='color:#cc6666'>✕ %1 file(s) excluded from this run.</span>")
                 .arg(m_excludedFiles.size()));
 
-    log("<span style='color:#ffaa00'>⚡ Generating run.do...</span>");
+    log("<span style='color:#00e5ff'>⬡ [Questa] Generating run.do...</span>");
     QString tb = generateRunDo(dir);
     if (tb.isEmpty()) {
-        log("<span style='color:#ff4444'>✗ ERROR: No simulation files remaining after exclusions!</span>");
+        log("<span style='color:#ff4444'>✗ [Questa] No simulation files remaining after exclusions!</span>");
         QMessageBox::critical(this, "Error",
             "No .sv files left to compile.\n"
             "Restore some files from the EXCLUDED FILES panel.");
         return;
     }
-    log("<span style='color:#00ff88'>✓ run.do ready — top: " + tb + "</span>");
+    log("<span style='color:#00ff88'>✓ [Questa] run.do ready — top: " + tb + "</span>");
 
     QString vsim    = settingVsim();
     QString lic     = settingLicenseFile();
@@ -697,7 +759,7 @@ void MainWindow::launch()
 
     log(QString("<span style='color:#446688'>  vsim:    %1</span>").arg(vsim));
     log(QString("<span style='color:#446688'>  license: %1</span>").arg(lic));
-    log("<span style='color:#00e5ff'>▶ Launching Questa...</span>");
+    log("<span style='color:#00e5ff'>▶ [Questa] Launching...</span>");
 
     QStringList vsimArgs = {"-gui", "-do", QString("cd %1; do %1/run.do").arg(dir)};
 
@@ -714,8 +776,151 @@ void MainWindow::launch()
     proc->setArguments(vsimArgs);
     proc->startDetached();
 
-    log("<span style='color:#00ff88'>✓ Done — Questa is starting!</span>");
-    QTimer::singleShot(1500, this, &QWidget::close);
+    log("<span style='color:#00ff88'>✓ [Questa] Launched!</span>");
+    // Only auto-close when Questa is the only target — keep window open if
+    // other tools are also being launched so their log output stays visible.
+    if (!m_chkQuartus->isChecked() && !m_chkGowin->isChecked())
+        QTimer::singleShot(1500, this, &QWidget::close);
+}
+
+// ── Quartus ───────────────────────────────────────────────────────────────────
+void MainWindow::launchForQuartus()
+{
+    QString dir = m_pathEdit->text().trimmed();
+    QStringList active = activeFiles(dir);
+
+    if (active.isEmpty()) {
+        log("<span style='color:#ff4444'>✗ [Quartus] No active .sv files to add.</span>");
+        return;
+    }
+
+    log("<span style='color:#ffaa00'>◈ [Quartus] Generating Quartus project files...</span>");
+
+    // ── 1. <project>.qpf ─────────────────────────────────────────────────────
+    QString projName = QDir(dir).dirName();
+    QString qpf = dir + "/" + projName + ".qpf";
+    {
+        QFile f(qpf);
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "# Quartus Prime project file — generated by QuestaLauncher\n";
+            s << "QUARTUS_VERSION = \"23.1\"\n";
+            s << "DATE = \"" << QDateTime::currentDateTime().toString(Qt::ISODate) << "\"\n\n";
+            s << "PROJECT_REVISION = \"" << projName << "\"\n";
+        }
+    }
+
+    // ── 2. <project>.qsf ─────────────────────────────────────────────────────
+    QString qsf = dir + "/" + projName + ".qsf";
+    {
+        QFile f(qsf);
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "# Quartus Settings File — generated by QuestaLauncher\n\n";
+            s << "set_global_assignment -name FAMILY \"Cyclone V\"\n";
+            s << "set_global_assignment -name DEVICE AUTO\n";
+            s << "set_global_assignment -name TOP_LEVEL_ENTITY " << active.last().chopped(3) << "\n\n";
+            for (const QString &sv : active)
+                s << "set_global_assignment -name SYSTEMVERILOG_FILE " << sv << "\n";
+        }
+    }
+
+    log(QString("<span style='color:#00ff88'>✓ [Quartus] Generated:</span>"));
+    log(QString("<span style='color:#446688'>    %1</span>").arg(qpf));
+    log(QString("<span style='color:#446688'>    %1</span>").arg(qsf));
+
+    // ── 3. Try to open Quartus if it's on PATH ────────────────────────────────
+    QSettings s("QuestaLauncher", "QuestaLauncher");
+    QString quartusPath = s.value("quartusPath", "").toString();
+
+    QString quartusExe;
+    if (!quartusPath.isEmpty() && QFile::exists(quartusPath))
+        quartusExe = quartusPath;
+    else {
+        // Try to find quartus on PATH
+        QProcess which;
+        which.start("which", {"quartus"});
+        which.waitForFinished(3000);
+        QString found = QString::fromLocal8Bit(which.readAllStandardOutput()).trimmed();
+        if (!found.isEmpty() && QFile::exists(found))
+            quartusExe = found;
+    }
+
+    if (!quartusExe.isEmpty()) {
+        log("<span style='color:#ffaa00'>▶ [Quartus] Opening Quartus Prime...</span>");
+        QProcess::startDetached(quartusExe, {qpf});
+        log("<span style='color:#00ff88'>✓ [Quartus] Launched!</span>");
+    } else {
+        log("<span style='color:#ffaa00'>⚠ [Quartus] quartus binary not found — project files written, open manually.</span>");
+        log("<span style='color:#446688'>  Set Quartus path in ⚙ CONFIG → Quartus binary to auto-launch.</span>");
+    }
+}
+
+// ── Gowin EDA ─────────────────────────────────────────────────────────────────
+void MainWindow::launchForGowin()
+{
+    QString dir = m_pathEdit->text().trimmed();
+    QStringList active = activeFiles(dir);
+
+    if (active.isEmpty()) {
+        log("<span style='color:#ff4444'>✗ [Gowin] No active .sv files to add.</span>");
+        return;
+    }
+
+    log("<span style='color:#88ff88'>◆ [Gowin] Generating Gowin project file...</span>");
+
+    QString projName = QDir(dir).dirName();
+
+    // ── <project>.gprj (Gowin IDE project XML) ────────────────────────────────
+    QString gprj = dir + "/" + projName + ".gprj";
+    {
+        QFile f(gprj);
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            s << "<!-- Gowin EDA project — generated by QuestaLauncher -->\n";
+            s << "<Project>\n";
+            s << "  <Template>FPGA</Template>\n";
+            s << "  <Version>5</Version>\n";
+            s << "  <Device name=\"GW1NR-LV9QN88PC6/I5\" pn=\"GW1NR-LV9QN88PC6/I5\"/>\n";
+            s << "  <FileList>\n";
+            for (const QString &sv : active)
+                s << "    <File path=\"" << sv << "\" type=\"file.sv\" enable=\"true\"/>\n";
+            s << "  </FileList>\n";
+            s << "  <Synthesis>\n";
+            s << "    <TopModule>" << active.last().chopped(3) << "</TopModule>\n";
+            s << "  </Synthesis>\n";
+            s << "</Project>\n";
+        }
+    }
+
+    log(QString("<span style='color:#00ff88'>✓ [Gowin] Generated:</span>"));
+    log(QString("<span style='color:#446688'>    %1</span>").arg(gprj));
+
+    // ── Try to open Gowin IDE if configured ───────────────────────────────────
+    QSettings s("QuestaLauncher", "QuestaLauncher");
+    QString gowinPath = s.value("gowinPath", "").toString();
+
+    QString gowinExe;
+    if (!gowinPath.isEmpty() && QFile::exists(gowinPath))
+        gowinExe = gowinPath;
+    else {
+        QProcess which;
+        which.start("which", {"gw_ide"});
+        which.waitForFinished(3000);
+        QString found = QString::fromLocal8Bit(which.readAllStandardOutput()).trimmed();
+        if (!found.isEmpty() && QFile::exists(found))
+            gowinExe = found;
+    }
+
+    if (!gowinExe.isEmpty()) {
+        log("<span style='color:#88ff88'>▶ [Gowin] Opening Gowin IDE...</span>");
+        QProcess::startDetached(gowinExe, {gprj});
+        log("<span style='color:#00ff88'>✓ [Gowin] Launched!</span>");
+    } else {
+        log("<span style='color:#88ff88'>⚠ [Gowin] gw_ide not found — project file written, open manually.</span>");
+        log("<span style='color:#446688'>  Set Gowin path in ⚙ CONFIG → Gowin IDE binary to auto-launch.</span>");
+    }
 }
 
 // ── install / license ─────────────────────────────────────────────────────────

@@ -10,17 +10,20 @@ class ConfigDialog : public QDialog
 public:
     explicit ConfigDialog(QWidget *parent = nullptr);
 
-    // Call after exec() == Accepted to read values back
     QString vsimPath()      const;
     QString licenseFile()   const;
     QString saltServer()    const;
     QString mtiVcoMode()    const;
     QString defaultFolder() const;
+    QString quartusPath()   const;
+    QString gowinPath()     const;
 
 private slots:
     void browseVsim();
     void browseLicense();
     void browseFolder();
+    void browseQuartus();
+    void browseGowin();
     void validate();
 
 private:
@@ -29,6 +32,8 @@ private:
     QLineEdit *m_saltEdit;
     QLineEdit *m_mtiEdit;
     QLineEdit *m_folderEdit;
+    QLineEdit *m_quartusEdit;
+    QLineEdit *m_gowinEdit;
     QLabel    *m_licenseWarning;
 
     QPushButton *m_saveBtn;

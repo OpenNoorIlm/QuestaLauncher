@@ -14,6 +14,7 @@
 #include <QScrollArea>
 #include <QGroupBox>
 #include "librarymanager.h"
+#include <QCheckBox>
 
 class MainWindow : public QMainWindow
 {
@@ -33,6 +34,9 @@ private slots:
     void openLibraryManager();
     void restoreFile(const QString &filename);
     void launch();
+    void launchForQuesta();
+    void launchForQuartus();
+    void launchForGowin();
     void installQuesta();
     void openLicenseRequest();
 
@@ -64,6 +68,11 @@ private:
 
     // Library manager (owns global registry)
     LibraryManager m_libMgr;
+
+    // Compile For checkboxes
+    QCheckBox *m_chkQuesta;
+    QCheckBox *m_chkQuartus;
+    QCheckBox *m_chkGowin;
 
     // QSettings helpers
     QString settingVsim()          const;
