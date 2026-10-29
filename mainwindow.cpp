@@ -2,6 +2,7 @@
 #include "prioritydialog.h"
 #include "configdialog.h"
 #include "excludedialog.h"
+#include "librarydialog.h"
 #include <QFileDialog>
 #include <QDir>
 #include <QFile>
@@ -58,6 +59,12 @@ static const QString STYLE = R"(
         padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
     }
     QPushButton#excludeBtn:hover { background-color: #cc444418; }
+    QPushButton#libBtn {
+        background-color: transparent; color: #88ddff;
+        border: 1px solid #44aacc; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#libBtn:hover { background-color: #44aacc18; }
     QPushButton#launchBtn {
         background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0057a8,stop:1 #00b4d8);
         color: white; border: none; border-radius: 8px;
@@ -371,8 +378,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_configBtn->setFixedHeight(34);
     m_configBtn->setFixedWidth(110);
 
+    m_libBtn = new QPushButton("📦   LIBRARIES");
+    m_libBtn->setObjectName("libBtn");
+    m_libBtn->setFixedHeight(34);
+
     actionRow->addWidget(m_priorityBtn);
     actionRow->addWidget(m_excludeBtn);
+    actionRow->addWidget(m_libBtn);
     actionRow->addWidget(m_configBtn);
     layout->addLayout(actionRow);
 
@@ -411,6 +423,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(m_browseBtn,   &QPushButton::clicked, this, &MainWindow::browseFolder);
     connect(m_priorityBtn, &QPushButton::clicked, this, &MainWindow::openPriorityDialog);
     connect(m_excludeBtn,  &QPushButton::clicked, this, &MainWindow::openExcludeDialog);
+    connect(m_libBtn,      &QPushButton::clicked, this, &MainWindow::openLibraryManager);
     connect(m_configBtn,   &QPushButton::clicked, this, &MainWindow::openConfig);
     connect(m_launchBtn,   &QPushButton::clicked, this, &MainWindow::launch);
     connect(m_installBtn,  &QPushButton::clicked, this, &MainWindow::installQuesta);
@@ -556,7 +569,22 @@ void MainWindow::openPriorityDialog()
     }
 }
 
-// ── generate run.do (respects exclusions) ─────────────────────────────────────
+// ── library manager ───────────────────────────────────────────────────────────
+void MainWindow::openLibraryManager()
+{
+    LibraryDialog dlg(&m_libMgr, m_pathEdit->text().trimmed(), settingVsim(), this);
+    dlg.exec();
+    // Deps may have changed — log current project deps
+    QString dir = m_pathEdit->text().trimmed();
+    if (!dir.isEmpty()) {
+        QStringList deps = m_libMgr.projectDeps(dir);
+        if (!deps.isEmpty())
+            log(QString("<span style='color:#88ddff'>📦 Project libraries: %1</span>")
+                    .arg(deps.join(", ")));
+    }
+}
+
+// ── generate run.do (respects exclusions + library deps) ──────────────────────
 QString MainWindow::generateRunDo(const QString &dir)
 {
     QStringList allFiles;
@@ -589,12 +617,34 @@ QString MainWindow::generateRunDo(const QString &dir)
     QString tbModule = tbFile; tbModule.remove(".sv");
     QString vlogFiles = allFiles.join(" ");
 
+    // Resolve library deps for this project
+    QStringList deps     = m_libMgr.projectDeps(dir);
+    QStringList libFlags = m_libMgr.linkFlags(deps);   // ["-L", "/path/db", ...]
+    QString libFlagsStr  = libFlags.join(" ");
+
+    // Warn about any dep that isn't compiled yet
+    for (const QString &dep : deps) {
+        if (m_libMgr.hasLibrary(dep) && !m_libMgr.library(dep).compiled)
+            log(QString("<span style='color:#ffaa00'>⚠ Library \"%1\" is not compiled — open 📦 LIBRARIES and compile it.</span>").arg(dep));
+    }
+
     QString content;
     QTextStream ts(&content);
     ts << "quietly vlib work\n";
-    ts << "vlog -work work " << vlogFiles << "\n";
-    ts << "vopt +acc work." << tbModule << " -o " << tbModule << "_opt\n";
-    ts << "vsim " << tbModule << "_opt\n";
+    // Compile each library dep first so work can reference it
+    for (const QString &dep : deps) {
+        if (!m_libMgr.hasLibrary(dep)) continue;
+        LibEntry le = m_libMgr.library(dep);
+        QStringList depSv = QDir(le.sourcePath).entryList({"*.sv"}, QDir::Files);
+        QStringList depPaths;
+        for (const QString &f : depSv) depPaths << (le.sourcePath + "/" + f);
+        ts << "vlog -work " << m_libMgr.workDbPath(dep) << " " << depPaths.join(" ") << "\n";
+    }
+    ts << "vlog -work work " << (libFlagsStr.isEmpty() ? "" : libFlagsStr + " ") << vlogFiles << "\n";
+    ts << "vopt +acc" << (libFlagsStr.isEmpty() ? "" : " " + libFlagsStr)
+       << " work." << tbModule << " -o " << tbModule << "_opt\n";
+    ts << "vsim" << (libFlagsStr.isEmpty() ? "" : " " + libFlagsStr)
+       << " " << tbModule << "_opt\n";
     ts << "add wave -r /*\n";
     ts << "run -all\n";
 

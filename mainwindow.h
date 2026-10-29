@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QScrollArea>
 #include <QGroupBox>
+#include "librarymanager.h"
 
 class MainWindow : public QMainWindow
 {
@@ -29,6 +30,7 @@ private slots:
     void openPriorityDialog();
     void openConfig();
     void openExcludeDialog();
+    void openLibraryManager();
     void restoreFile(const QString &filename);
     void launch();
     void installQuesta();
@@ -39,7 +41,8 @@ private:
     QPushButton *m_browseBtn;
     QPushButton *m_priorityBtn;
     QPushButton *m_configBtn;
-    QPushButton *m_excludeBtn;      // opens ExcludeDialog
+    QPushButton *m_excludeBtn;
+    QPushButton *m_libBtn;          // opens LibraryDialog
     QPushButton *m_launchBtn;
     QTextEdit   *m_log;
     QLabel      *m_logoLabel;
@@ -50,7 +53,7 @@ private:
     // Per-file exclude list (filenames only, relative to project folder)
     QStringList  m_excludedFiles;
 
-    // The scrollable chip area inside the EXCLUDED FILES group
+    // Scrollable chip area inside EXCLUDED FILES group
     QGroupBox   *m_excludedBox;
     QWidget     *m_chipContainer;
     QVBoxLayout *m_chipLayout;
@@ -58,6 +61,9 @@ private:
     // Install buttons
     QPushButton *m_installBtn;
     QPushButton *m_licenseBtn;
+
+    // Library manager (owns global registry)
+    LibraryManager m_libMgr;
 
     // QSettings helpers
     QString settingVsim()          const;
@@ -67,9 +73,8 @@ private:
     QString settingDefaultFolder() const;
 
     void updateLicenseStatus();
-    void rebuildExcludedChips();   // refreshes the chip panel
+    void rebuildExcludedChips();
 
-    // Returns all .sv files in dir minus excluded ones
     QStringList activeFiles(const QString &dir) const;
 
     QString generateRunDo(const QString &dir);

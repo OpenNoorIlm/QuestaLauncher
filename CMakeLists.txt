@@ -19,6 +19,10 @@ qt_add_executable(QuestaLauncher
     configdialog.cpp
     excludedialog.h
     excludedialog.cpp
+    librarymanager.h
+    librarymanager.cpp
+    librarydialog.h
+    librarydialog.cpp
     resources.qrc
 )
 
