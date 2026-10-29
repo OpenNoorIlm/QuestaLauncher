@@ -299,7 +299,7 @@ QString GowinCstDialog::buildTemplate(const QList<Port> &ports, const QString &d
     }
 
     // Group by direction for readability
-    auto emit = [&](const QString &dir, const QString &comment) {
+    auto emitGroup = [&](const QString &dir, const QString &comment) {
         bool any = false;
         for (const Port &p : ports) if (p.direction == dir) { any = true; break; }
         if (!any) return;
@@ -315,9 +315,9 @@ QString GowinCstDialog::buildTemplate(const QList<Port> &ports, const QString &d
         ts << "\n";
     };
 
-    emit("input",  "Inputs");
-    emit("output", "Outputs");
-    emit("inout",  "Bidirectional");
+    emitGroup("input",  "Inputs");
+    emitGroup("output", "Outputs");
+    emitGroup("inout",  "Bidirectional");
 
     return out;
 }

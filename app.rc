@@ -1,0 +1,23 @@
+#include <windows.h>
+IDI_ICON1 ICON "multihd_launcher.ico"
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+ BLOCK "StringFileInfo" BEGIN BLOCK "040904b0" BEGIN
+  VALUE "CompanyName","OpenNoorIlm"
+  VALUE "FileDescription","MultiHD Launcher"
+  VALUE "FileVersion","1.2.0.0"
+  VALUE "InternalName","MultiHDLauncher"
+  VALUE "LegalCopyright","MIT (c) OpenNoorIlm"
+  VALUE "OriginalFilename","MultiHDLauncher.exe"
+  VALUE "ProductName","MultiHD Launcher"
+  VALUE "ProductVersion","1.2.0.0"
+ END END
+ BLOCK "VarFileInfo" BEGIN VALUE "Translation",0x409,1200 END
+END

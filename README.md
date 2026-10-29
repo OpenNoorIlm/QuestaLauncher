@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="questa_launcher.svg" width="96" height="96" alt="MultiHD Launcher logo"/>
+<img src="multihd_launcher.svg" width="96" height="96" alt="MultiHD Launcher logo"/>
 
 # MultiHD Launcher
 
@@ -154,7 +154,7 @@ QuestaLauncher/          ← repo root (name kept for URL continuity)
 ├── librarymanager.h/.cpp Shared library / dependency manager
 ├── librarydialog.h/.cpp  Library management dialog
 ├── resources.qrc         Embedded SVG icon
-├── questa_launcher.svg   App icon
+├── multihd_launcher.svg   App icon (SVG source)
 ├── MultiHDLauncher.desktop  XDG desktop entry
 └── CMakeLists.txt        Build system
 ```

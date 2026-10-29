@@ -327,6 +327,7 @@ void ConfigDialog::validate()
 void ConfigDialog::loadSettings()
 {
     QSettings s("MultiHDLauncher", "MultiHDLauncher");
+    m_vsimEdit->setText(s.value("vsimPath",
         "/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/vsim").toString());
     m_licenseEdit->setText(s.value("licenseFile",
         "/home/bismillah/.licenses/questa_license.dat").toString());

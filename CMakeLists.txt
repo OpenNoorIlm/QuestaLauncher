@@ -35,6 +35,29 @@ qt_add_executable(MultiHDLauncher
 target_link_libraries(MultiHDLauncher PRIVATE Qt6::Core Qt6::Widgets Qt6::Svg)
 
 # ───────────────────────────────────────────────────────────────────────────────
+# Windows: embed icon + version info via app.rc (GUI subsystem is implied by
+# qt_add_executable, but we set it explicitly for older toolchains).
+# ───────────────────────────────────────────────────────────────────────────────
+if(WIN32)
+    set_target_properties(MultiHDLauncher PROPERTIES WIN32_EXECUTABLE TRUE)
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/multihd_launcher.ico")
+        target_sources(MultiHDLauncher PRIVATE app.rc)
+        message(STATUS "[MultiHDLauncher] Windows resource app.rc included")
+    else()
+        message(WARNING
+            "[MultiHDLauncher] multihd_launcher.ico not found — Windows icon/version "
+            "resource will be skipped.\n"
+            "  Convert the SVG to a multi‑size .ico, e.g.:\n"
+            "    inkscape multihd_launcher.svg --export-type=ico \\\n"
+            "        --export-filename=multihd_launcher.ico\n"
+            "  or:\n"
+            "    magick multihd_launcher.svg -define icon:auto-resize=256,128,64,48,32,16 \\\n"
+            "        multihd_launcher.ico")
+    endif()
+endif()
+
+# ───────────────────────────────────────────────────────────────────────────────
 # Only produce packages in Release builds — skip for Debug so Qt Creator's
 # day-to-day edit/compile loop stays fast.
 # ───────────────────────────────────────────────────────────────────────────────
@@ -59,7 +82,7 @@ file(MAKE_DIRECTORY "${APPIMAGE_STAGING}")
 # Install rules  (used by both CPack/deb AND the AppImage staging step)
 # ───────────────────────────────────────────────────────────────────────────────
 install(TARGETS MultiHDLauncher RUNTIME DESTINATION bin)
-install(FILES questa_launcher.svg
+install(FILES multihd_launcher.svg
         DESTINATION share/icons/hicolor/scalable/apps/)
 install(FILES MultiHDLauncher.desktop
         DESTINATION share/applications/)
@@ -91,15 +114,16 @@ string(TOLOWER "${CPACK_PACKAGE_NAME}" _deb_pkg_lower)
 set(DEB_FILE "${DEB_DIR}/${_deb_pkg_lower}_${PROJECT_VERSION}_amd64.deb")
 
 # Post-build command: run cpack to generate the .deb
+# (FIX: previously an extra "add_custom_command(" was nested here, leaving
+#  the outer call unclosed → CMake parse error at end of file.)
 add_custom_command(
-    add_custom_command(
-        TARGET MultiHDLauncher POST_BUILD
-        COMMAND ${CMAKE_CPACK_COMMAND} --config "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
-                                       -G DEB -B "${DEB_DIR}"
-        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-        COMMENT "Packaging .deb → ${DEB_FILE}"
-        VERBATIM
-    )
+    TARGET MultiHDLauncher POST_BUILD
+    COMMAND ${CMAKE_CPACK_COMMAND} --config "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
+                                   -G DEB -B "${DEB_DIR}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    COMMENT "Packaging .deb → ${DEB_FILE}"
+    VERBATIM
+)
 
 # ───────────────────────────────────────────────────────────────────────────────
 # linuxdeploy + linuxdeploy-plugin-qt — auto-download if not found
@@ -195,7 +219,7 @@ mkdir -p \"$STAGING/usr/share/icons/hicolor/scalable/apps\"
 # Populate FHS layout
 cp \"$<TARGET_FILE:MultiHDLauncher>\"                 \"$STAGING/usr/bin/MultiHDLauncher\"
 cp \"${CMAKE_SOURCE_DIR}/MultiHDLauncher.desktop\"     \"$STAGING/usr/share/applications/MultiHDLauncher.desktop\"
-cp \"${CMAKE_SOURCE_DIR}/questa_launcher.svg\"        \"$STAGING/usr/share/icons/hicolor/scalable/apps/questa_launcher.svg\"
+cp \"${CMAKE_SOURCE_DIR}/multihd_launcher.svg\"        \"$STAGING/usr/share/icons/hicolor/scalable/apps/multihd_launcher.svg\"
 
 # Self-heal the Desktop Entry Version= key (must be a spec version, not the app version)
 sed -i 's/^[[:space:]]*Version[[:space:]]*=.*/Version=1.5/' \\
@@ -228,7 +252,7 @@ echo \"AppImage ready in $OUTDIR/\"
     message(STATUS "  qmake                 : ${QMAKE_EXECUTABLE}")
 else()
     message(WARNING
-        "[QuestaLauncher] linuxdeploy / linuxdeploy-plugin-qt unavailable — AppImage skipped.\n"
+        "[MultiHDLauncher] linuxdeploy / linuxdeploy-plugin-qt unavailable — AppImage skipped.\n"
         "  Install globally:\n"
         "    sudo mv linuxdeploy-x86_64.AppImage            /usr/local/bin/linuxdeploy\n"
         "    sudo mv linuxdeploy-plugin-qt-x86_64.AppImage  /usr/local/bin/linuxdeploy-plugin-qt")

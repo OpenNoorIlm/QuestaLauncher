@@ -300,7 +300,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     setStyleSheet(STYLE);
 
     QIcon appIcon;
-    QSvgRenderer renderer(QString(":/questa_launcher.svg"));
+    QSvgRenderer renderer(QString(":/multihd_launcher.svg"));
     QPixmap iconPix(256, 256);
     iconPix.fill(Qt::transparent);
     QPainter iconPainter(&iconPix);
@@ -316,7 +316,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     layout->setContentsMargins(20, 14, 20, 14);
 
     // Logo
-    QSvgRenderer *svgRender = new QSvgRenderer(QString(":/questa_launcher.svg"), this);
+    QSvgRenderer *svgRender = new QSvgRenderer(QString(":/multihd_launcher.svg"), this);
     QPixmap logoPix(64, 64);
     logoPix.fill(Qt::transparent);
     QPainter logoPainter(&logoPix);
