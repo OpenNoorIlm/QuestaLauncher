@@ -91,7 +91,7 @@ static QHBoxLayout* makeRow(QLineEdit *edit, QPushButton *btn)
 // ── constructor ──────────────────────────────────────────────────────────────
 ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
 {
-    setWindowTitle("Questa Launcher — Configuration");
+    setWindowTitle("MultiHD Launcher — Configuration");
     setFixedSize(580, 560);   // taller to fit extra rows
     setStyleSheet(CFG_STYLE);
     setModal(true);
@@ -326,8 +326,7 @@ void ConfigDialog::validate()
 // ── persistence ──────────────────────────────────────────────────────────────
 void ConfigDialog::loadSettings()
 {
-    QSettings s("QuestaLauncher", "QuestaLauncher");
-    m_vsimEdit->setText(s.value("vsimPath",
+    QSettings s("MultiHDLauncher", "MultiHDLauncher");
         "/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/vsim").toString());
     m_licenseEdit->setText(s.value("licenseFile",
         "/home/bismillah/.licenses/questa_license.dat").toString());
@@ -342,7 +341,7 @@ void ConfigDialog::loadSettings()
 
 void ConfigDialog::saveSettings()
 {
-    QSettings s("QuestaLauncher", "QuestaLauncher");
+    QSettings s("MultiHDLauncher", "MultiHDLauncher");
     s.setValue("vsimPath",      m_vsimEdit->text().trimmed());
     s.setValue("licenseFile",   m_licenseEdit->text().trimmed());
     s.setValue("saltServer",    m_saltEdit->text().trimmed());

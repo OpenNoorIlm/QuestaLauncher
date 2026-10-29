@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.5
+Type=Application
+Name=MultiHD Launcher
+GenericName=FPGA Multi-Tool Launcher
+Comment=Launch Questa FSE, Quartus Prime and Gowin EDA from one Qt6 GUI
+Exec=MultiHDLauncher %f
+Icon=questa_launcher
+Categories=Development;Electronics;
+Terminal=false
+StartupNotify=true
+Keywords=FPGA;SystemVerilog;Questa;Quartus;Gowin;EDA;HDL;

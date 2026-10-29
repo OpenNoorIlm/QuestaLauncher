@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(QuestaLauncher VERSION 1.1.0 LANGUAGES CXX)
+# ── Name change note ──────────────────────────────────────────────────────────
+# The project was renamed from QuestaLauncher to MultiHDLauncher.
+# Release archives keep their original titles for archival reference.
+# ─────────────────────────────────────────────────────────────────────────────
+project(MultiHDLauncher VERSION 1.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,7 +13,7 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg)
 
-qt_add_executable(QuestaLauncher
+qt_add_executable(MultiHDLauncher
     main.cpp
     mainwindow.h
     mainwindow.cpp
@@ -23,17 +27,19 @@ qt_add_executable(QuestaLauncher
     librarymanager.cpp
     librarydialog.h
     librarydialog.cpp
+    gowincstdialog.h
+    gowincstdialog.cpp
     resources.qrc
 )
 
-target_link_libraries(QuestaLauncher PRIVATE Qt6::Core Qt6::Widgets Qt6::Svg)
+target_link_libraries(MultiHDLauncher PRIVATE Qt6::Core Qt6::Widgets Qt6::Svg)
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Only produce packages in Release builds — skip for Debug so Qt Creator's
 # day-to-day edit/compile loop stays fast.
 # ───────────────────────────────────────────────────────────────────────────────
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-    message(STATUS "[QuestaLauncher] Non-Release build — skipping .deb / AppImage.")
+    message(STATUS "[MultiHDLauncher] Non-Release build — skipping .deb / AppImage.")
     return()
 endif()
 
@@ -52,24 +58,25 @@ file(MAKE_DIRECTORY "${APPIMAGE_STAGING}")
 # ───────────────────────────────────────────────────────────────────────────────
 # Install rules  (used by both CPack/deb AND the AppImage staging step)
 # ───────────────────────────────────────────────────────────────────────────────
-install(TARGETS QuestaLauncher RUNTIME DESTINATION bin)
+install(TARGETS MultiHDLauncher RUNTIME DESTINATION bin)
 install(FILES questa_launcher.svg
         DESTINATION share/icons/hicolor/scalable/apps/)
-install(FILES QuestaLauncher.desktop
+install(FILES MultiHDLauncher.desktop
         DESTINATION share/applications/)
 
 # ───────────────────────────────────────────────────────────────────────────────
 # .deb via CPack — runs as a post-build custom command so Qt Creator's
 # Build button produces the .deb automatically.
 # ───────────────────────────────────────────────────────────────────────────────
-set(CPACK_PACKAGE_NAME              "QuestaLauncher")
+set(CPACK_PACKAGE_NAME              "MultiHDLauncher")
 set(CPACK_PACKAGE_VERSION           "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_VENDOR            "OpenNoorIlm")
 set(CPACK_PACKAGE_CONTACT           "OpenNoorIlm <solo@opennoorilm.com>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Qt6 launcher for Questa Intel FPGA FSE")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Qt6 multi-tool launcher: Questa FSE, Quartus Prime, Gowin EDA")
 set(CPACK_PACKAGE_DESCRIPTION
-    "QuestaLauncher is a Qt6 GUI that generates run.do scripts and launches\n"
-    "Questa Intel FPGA Starter Edition from a chosen SystemVerilog project folder.")
+    "MultiHDLauncher (formerly QuestaLauncher) is a Qt6 GUI that generates\n"
+    "project files and launches Questa Intel FPGA FSE, Quartus Prime, and\n"
+    "Gowin EDA from a chosen SystemVerilog project folder.")
 set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_GENERATOR                 "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "OpenNoorIlm <solo@opennoorilm.com>")
@@ -85,13 +92,14 @@ set(DEB_FILE "${DEB_DIR}/${_deb_pkg_lower}_${PROJECT_VERSION}_amd64.deb")
 
 # Post-build command: run cpack to generate the .deb
 add_custom_command(
-    TARGET QuestaLauncher POST_BUILD
-    COMMAND ${CMAKE_CPACK_COMMAND} --config "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
-                                   -G DEB -B "${DEB_DIR}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-    COMMENT "Packaging .deb → ${DEB_FILE}"
-    VERBATIM
-)
+    add_custom_command(
+        TARGET MultiHDLauncher POST_BUILD
+        COMMAND ${CMAKE_CPACK_COMMAND} --config "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
+                                       -G DEB -B "${DEB_DIR}"
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+        COMMENT "Packaging .deb → ${DEB_FILE}"
+        VERBATIM
+    )
 
 # ───────────────────────────────────────────────────────────────────────────────
 # linuxdeploy + linuxdeploy-plugin-qt — auto-download if not found
@@ -107,11 +115,11 @@ find_program(LINUXDEPLOY_PLUGIN_QT_EXECUTABLE NAMES linuxdeploy-plugin-qt
              HINTS "${CMAKE_BINARY_DIR}" "$ENV{HOME}/.local/bin" "/usr/local/bin")
 
 if(NOT LINUXDEPLOY_EXECUTABLE)
-    message(STATUS "[QuestaLauncher] linuxdeploy not found — will download at build time.")
+    message(STATUS "[MultiHDLauncher] linuxdeploy not found — will download at build time.")
     set(LD_URL
         "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage")
     if(NOT EXISTS "${LD_LOCAL}")
-        message(STATUS "[QuestaLauncher] Downloading linuxdeploy …")
+        message(STATUS "[MultiHDLauncher] Downloading linuxdeploy …")
         file(DOWNLOAD "${LD_URL}" "${LD_LOCAL}" SHOW_PROGRESS STATUS _dl_status)
         list(GET _dl_status 0 _dl_code)
         if(_dl_code EQUAL 0)
@@ -119,10 +127,10 @@ if(NOT LINUXDEPLOY_EXECUTABLE)
                  OWNER_READ OWNER_WRITE OWNER_EXECUTE
                  GROUP_READ GROUP_EXECUTE
                  WORLD_READ WORLD_EXECUTE)
-            message(STATUS "[QuestaLauncher] linuxdeploy downloaded to ${LD_LOCAL}")
+            message(STATUS "[MultiHDLauncher] linuxdeploy downloaded to ${LD_LOCAL}")
         else()
             list(GET _dl_status 1 _dl_msg)
-            message(WARNING "[QuestaLauncher] linuxdeploy download failed: ${_dl_msg}")
+            message(WARNING "[MultiHDLauncher] linuxdeploy download failed: ${_dl_msg}")
         endif()
     endif()
     if(EXISTS "${LD_LOCAL}")
@@ -131,11 +139,11 @@ if(NOT LINUXDEPLOY_EXECUTABLE)
 endif()
 
 if(NOT LINUXDEPLOY_PLUGIN_QT_EXECUTABLE)
-    message(STATUS "[QuestaLauncher] linuxdeploy-plugin-qt not found — will download at build time.")
+    message(STATUS "[MultiHDLauncher] linuxdeploy-plugin-qt not found — will download at build time.")
     set(LD_QT_URL
         "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage")
     if(NOT EXISTS "${LD_QT_PLUGIN_LOCAL}")
-        message(STATUS "[QuestaLauncher] Downloading linuxdeploy-plugin-qt …")
+        message(STATUS "[MultiHDLauncher] Downloading linuxdeploy-plugin-qt …")
         file(DOWNLOAD "${LD_QT_URL}" "${LD_QT_PLUGIN_LOCAL}" SHOW_PROGRESS STATUS _dl_status)
         list(GET _dl_status 0 _dl_code)
         if(_dl_code EQUAL 0)
@@ -143,10 +151,10 @@ if(NOT LINUXDEPLOY_PLUGIN_QT_EXECUTABLE)
                  OWNER_READ OWNER_WRITE OWNER_EXECUTE
                  GROUP_READ GROUP_EXECUTE
                  WORLD_READ WORLD_EXECUTE)
-            message(STATUS "[QuestaLauncher] linuxdeploy-plugin-qt downloaded to ${LD_QT_PLUGIN_LOCAL}")
+            message(STATUS "[MultiHDLauncher] linuxdeploy-plugin-qt downloaded to ${LD_QT_PLUGIN_LOCAL}")
         else()
             list(GET _dl_status 1 _dl_msg)
-            message(WARNING "[QuestaLauncher] linuxdeploy-plugin-qt download failed: ${_dl_msg}")
+            message(WARNING "[MultiHDLauncher] linuxdeploy-plugin-qt download failed: ${_dl_msg}")
         endif()
     endif()
     if(EXISTS "${LD_QT_PLUGIN_LOCAL}")
@@ -155,7 +163,7 @@ if(NOT LINUXDEPLOY_PLUGIN_QT_EXECUTABLE)
 endif()
 
 # ───────────────────────────────────────────────────────────────────────────────
-# AppImage — built as a second POST_BUILD step on QuestaLauncher (after .deb)
+# AppImage — built as a second POST_BUILD step on MultiHDLauncher (after .deb)
 # ───────────────────────────────────────────────────────────────────────────────
 if(LINUXDEPLOY_EXECUTABLE AND LINUXDEPLOY_PLUGIN_QT_EXECUTABLE)
     # Resolve qmake from the Qt6 import
@@ -185,13 +193,13 @@ mkdir -p \"$STAGING/usr/share/applications\"
 mkdir -p \"$STAGING/usr/share/icons/hicolor/scalable/apps\"
 
 # Populate FHS layout
-cp \"$<TARGET_FILE:QuestaLauncher>\"                 \"$STAGING/usr/bin/QuestaLauncher\"
-cp \"${CMAKE_SOURCE_DIR}/QuestaLauncher.desktop\"     \"$STAGING/usr/share/applications/QuestaLauncher.desktop\"
+cp \"$<TARGET_FILE:MultiHDLauncher>\"                 \"$STAGING/usr/bin/MultiHDLauncher\"
+cp \"${CMAKE_SOURCE_DIR}/MultiHDLauncher.desktop\"     \"$STAGING/usr/share/applications/MultiHDLauncher.desktop\"
 cp \"${CMAKE_SOURCE_DIR}/questa_launcher.svg\"        \"$STAGING/usr/share/icons/hicolor/scalable/apps/questa_launcher.svg\"
 
 # Self-heal the Desktop Entry Version= key (must be a spec version, not the app version)
 sed -i 's/^[[:space:]]*Version[[:space:]]*=.*/Version=1.5/' \\
-       \"$STAGING/usr/share/applications/QuestaLauncher.desktop\"
+       \"$STAGING/usr/share/applications/MultiHDLauncher.desktop\"
 
 # Make sure linuxdeploy finds the qt plugin and qmake
 export QMAKE=\"${QMAKE_EXECUTABLE}\"
@@ -206,7 +214,7 @@ echo \"AppImage ready in $OUTDIR/\"
     )
 
     add_custom_command(
-        TARGET QuestaLauncher POST_BUILD
+        TARGET MultiHDLauncher POST_BUILD
         COMMAND chmod +x "${APPIMAGE_SCRIPT}"
         COMMAND "${APPIMAGE_SCRIPT}"
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
@@ -214,7 +222,7 @@ echo \"AppImage ready in $OUTDIR/\"
         VERBATIM
     )
 
-    message(STATUS "[QuestaLauncher] AppImage will be built automatically")
+    message(STATUS "[MultiHDLauncher] AppImage will be built automatically")
     message(STATUS "  linuxdeploy           : ${LINUXDEPLOY_EXECUTABLE}")
     message(STATUS "  linuxdeploy-plugin-qt : ${LINUXDEPLOY_PLUGIN_QT_EXECUTABLE}")
     message(STATUS "  qmake                 : ${QMAKE_EXECUTABLE}")

@@ -3,6 +3,7 @@
 #include "configdialog.h"
 #include "excludedialog.h"
 #include "librarydialog.h"
+#include "gowincstdialog.h"
 #include <QFileDialog>
 #include <QDir>
 #include <QFile>
@@ -96,7 +97,6 @@ static const QString STYLE = R"(
         padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
     }
     QPushButton#licenseBtn:hover { background-color: #bb88ff22; }
-    /* Restore chip buttons inside the excluded panel */
     QPushButton#restoreBtn {
         background-color: #1a0000; color: #ff6666;
         border: 1px solid #552222; border-radius: 4px;
@@ -138,9 +138,7 @@ static const QString STYLE = R"(
         font-family: 'Courier New', monospace; font-size: 10px;
         color: #446688;
     }
-    QGroupBox#excludedBox {
-        border: 1px solid #331111;
-    }
+    QGroupBox#excludedBox { border: 1px solid #331111; }
     QGroupBox::title {
         subcontrol-origin: margin; subcontrol-position: top left;
         padding: 0 4px; left: 8px; color: #446688;
@@ -160,8 +158,8 @@ static const QString STYLE = R"(
     QCheckBox::indicator {
         width: 14px; height: 14px; border-radius: 3px; background-color: #0d0d1a;
     }
-    QCheckBox#chkQuesta                { color: #00e5ff; }
-    QCheckBox#chkQuesta::indicator     { border: 1px solid #00e5ff; }
+    QCheckBox#chkQuesta            { color: #00e5ff; }
+    QCheckBox#chkQuesta::indicator { border: 1px solid #00e5ff; }
     QCheckBox#chkQuesta::indicator:checked { background-color: #0057a8; border-color: #00e5ff; }
 
     QCheckBox#chkQuartus               { color: #ffaa00; }
@@ -175,25 +173,25 @@ static const QString STYLE = R"(
     QGroupBox#compileForBox { border-color: #1a2a1a; }
 )";
 
-// ── QSettings helpers ─────────────────────────────────────────────────────────
+// ── QSettings helpers  (org: MultiHDLauncher) ────────────────────────────────
 QString MainWindow::settingVsim() const {
-    return QSettings("QuestaLauncher","QuestaLauncher")
+    return QSettings("MultiHDLauncher","MultiHDLauncher")
         .value("vsimPath", "/home/bismillah/altera/25.1std/questa_fse/linux_x86_64/vsim").toString();
 }
 QString MainWindow::settingLicenseFile() const {
-    return QSettings("QuestaLauncher","QuestaLauncher")
+    return QSettings("MultiHDLauncher","MultiHDLauncher")
         .value("licenseFile", "/home/bismillah/.licenses/questa_license.dat").toString();
 }
 QString MainWindow::settingSaltServer() const {
-    return QSettings("QuestaLauncher","QuestaLauncher")
+    return QSettings("MultiHDLauncher","MultiHDLauncher")
         .value("saltServer", "/home/bismillah/.licenses/questa_license.dat").toString();
 }
 QString MainWindow::settingMtiVcoMode() const {
-    return QSettings("QuestaLauncher","QuestaLauncher")
+    return QSettings("MultiHDLauncher","MultiHDLauncher")
         .value("mtiVcoMode", "64").toString();
 }
 QString MainWindow::settingDefaultFolder() const {
-    return QSettings("QuestaLauncher","QuestaLauncher")
+    return QSettings("MultiHDLauncher","MultiHDLauncher")
         .value("defaultFolder", "/home/bismillah/Downloads/SystemVerilogCourse/").toString();
 }
 
@@ -206,17 +204,17 @@ void MainWindow::updateLicenseStatus()
         m_licenseStatusLabel->setText("✓ LICENSE OK");
     } else {
         m_licenseStatusLabel->setObjectName("licBad");
-        m_licenseStatusLabel->setText("⚠ LICENSE NOT SET — configure before launching!");
+        m_licenseStatusLabel->setText("⚠ LICENSE NOT SET — configure before launching Questa!");
     }
     m_licenseStatusLabel->style()->unpolish(m_licenseStatusLabel);
     m_licenseStatusLabel->style()->polish(m_licenseStatusLabel);
 
     if (ok) {
         m_launchBtn->setObjectName("launchBtn");
-        m_launchBtn->setText("▶   LAUNCH QUESTA");
+        m_launchBtn->setText("▶   LAUNCH");
     } else {
         m_launchBtn->setObjectName("launchBtnWarn");
-        m_launchBtn->setText("⚠   LAUNCH QUESTA  (no license!)");
+        m_launchBtn->setText("⚠   LAUNCH  (Questa: no license!)");
     }
     m_launchBtn->style()->unpolish(m_launchBtn);
     m_launchBtn->style()->polish(m_launchBtn);
@@ -237,7 +235,6 @@ QStringList MainWindow::activeFiles(const QString &dir) const
 // ── chip panel ────────────────────────────────────────────────────────────────
 void MainWindow::rebuildExcludedChips()
 {
-    // Remove all existing chip widgets
     QLayoutItem *item;
     while ((item = m_chipLayout->takeAt(0)) != nullptr) {
         if (item->widget()) item->widget()->deleteLater();
@@ -263,7 +260,7 @@ void MainWindow::rebuildExcludedChips()
             btn->setFixedHeight(20);
             btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
-            QString fname = f;   // capture for lambda
+            QString fname = f;
             connect(btn, &QPushButton::clicked, this, [this, fname](){
                 restoreFile(fname);
             });
@@ -282,14 +279,12 @@ void MainWindow::rebuildExcludedChips()
     }
     m_chipLayout->addStretch();
 
-    // Reset custom order since the active file set has changed
     if (!m_customOrder.isEmpty()) {
         m_customOrder.clear();
         m_priorityBtn->setText("⇅   SET COMPILE ORDER");
         m_priorityBtn->setStyleSheet("");
     }
 
-    // Update exclude button label
     if (!m_excludedFiles.isEmpty())
         m_excludeBtn->setText(
             QString("✕   DISINCLUDE  [%1 hidden]").arg(m_excludedFiles.size()));
@@ -300,7 +295,7 @@ void MainWindow::rebuildExcludedChips()
 // ── constructor ───────────────────────────────────────────────────────────────
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle("Questa Launcher");
+    setWindowTitle("MultiHD Launcher");
     setFixedSize(560, 700);
     setStyleSheet(STYLE);
 
@@ -332,7 +327,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_logoLabel->setPixmap(logoPix);
     m_logoLabel->setAlignment(Qt::AlignCenter);
 
-    m_subtitleLabel = new QLabel("SIEMENS EDA  •  FPGA STARTER EDITION  •  v2025.2");
+    m_subtitleLabel = new QLabel("QUESTA FSE  •  QUARTUS PRIME  •  GOWIN EDA");
     m_subtitleLabel->setObjectName("subtitle");
     m_subtitleLabel->setAlignment(Qt::AlignCenter);
 
@@ -366,7 +361,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     exBoxLayout->setContentsMargins(8, 6, 8, 6);
     exBoxLayout->setSpacing(0);
 
-    // Scrollable chip area (max 3 rows visible)
     QScrollArea *scroll = new QScrollArea();
     scroll->setWidgetResizable(true);
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -384,7 +378,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     exBoxLayout->addWidget(scroll);
     layout->addWidget(m_excludedBox);
 
-    // ── Action row: priority + disinclude + config ────────────────────────────
+    // ── Action row ────────────────────────────────────────────────────────────
     QHBoxLayout *actionRow = new QHBoxLayout();
     actionRow->setSpacing(6);
 
@@ -426,7 +420,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_chkQuartus->setObjectName("chkQuartus");
     m_chkGowin->setObjectName("chkGowin");
 
-    m_chkQuesta->setChecked(true);   // default — this app is for Questa
+    m_chkQuesta->setChecked(true);
 
     cfRow->addWidget(m_chkQuesta);
     cfRow->addWidget(m_chkQuartus);
@@ -435,7 +429,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     layout->addWidget(compileForBox);
 
     // Launch button
-    m_launchBtn = new QPushButton("▶   LAUNCH QUESTA");
+    m_launchBtn = new QPushButton("▶   LAUNCH");
     m_launchBtn->setObjectName("launchBtn");
     m_launchBtn->setFixedHeight(46);
     QGraphicsDropShadowEffect *glow = new QGraphicsDropShadowEffect();
@@ -475,7 +469,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(m_installBtn,  &QPushButton::clicked, this, &MainWindow::installQuesta);
     connect(m_licenseBtn,  &QPushButton::clicked, this, &MainWindow::openLicenseRequest);
 
-    // Also clear exclusions when a new folder is picked
     connect(m_pathEdit, &QLineEdit::textChanged, this, [this](){
         if (!m_excludedFiles.isEmpty()) {
             m_excludedFiles.clear();
@@ -487,7 +480,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     if (args.size() > 1 && QDir(args[1]).exists())
         m_pathEdit->setText(args[1]);
 
-    rebuildExcludedChips();   // start with empty panel
+    rebuildExcludedChips();
     updateLicenseStatus();
 }
 
@@ -574,7 +567,7 @@ void MainWindow::openConfig()
     }
 }
 
-// ── priority dialog (only shows active files) ─────────────────────────────────
+// ── priority dialog ───────────────────────────────────────────────────────────
 void MainWindow::openPriorityDialog()
 {
     QString dir = m_pathEdit->text().trimmed();
@@ -592,11 +585,9 @@ void MainWindow::openPriorityDialog()
     }
 
     if (!m_customOrder.isEmpty()) {
-        // Keep only files that are still active
         QStringList filtered;
         for (const QString &f : m_customOrder)
             if (files.contains(f)) filtered << f;
-        // Add any new active files not in the existing order
         for (const QString &f : files)
             if (!filtered.contains(f)) filtered << f;
         files = filtered;
@@ -620,7 +611,6 @@ void MainWindow::openLibraryManager()
 {
     LibraryDialog dlg(&m_libMgr, m_pathEdit->text().trimmed(), settingVsim(), this);
     dlg.exec();
-    // Deps may have changed — log current project deps
     QString dir = m_pathEdit->text().trimmed();
     if (!dir.isEmpty()) {
         QStringList deps = m_libMgr.projectDeps(dir);
@@ -630,20 +620,18 @@ void MainWindow::openLibraryManager()
     }
 }
 
-// ── generate run.do (respects exclusions + library deps) ──────────────────────
+// ── generate run.do (Questa) ──────────────────────────────────────────────────
 QString MainWindow::generateRunDo(const QString &dir)
 {
     QStringList allFiles;
 
     if (!m_customOrder.isEmpty()) {
-        // Custom order: strip any that got excluded since order was set
         for (const QString &f : m_customOrder)
             if (!m_excludedFiles.contains(f)) allFiles << f;
     } else {
         QStringList active = activeFiles(dir);
         if (active.isEmpty()) return QString();
 
-        // Split into tb and non-tb, preserving the auto-ordering convention
         QStringList tbFiles, otherFiles;
         for (const QString &f : active) {
             if (f.endsWith("_tb.sv")) tbFiles  << f;
@@ -654,7 +642,6 @@ QString MainWindow::generateRunDo(const QString &dir)
 
     if (allFiles.isEmpty()) return QString();
 
-    // Top module: last *_tb.sv, or last file if none
     QString tbFile;
     for (const QString &f : allFiles)
         if (f.endsWith("_tb.sv")) tbFile = f;
@@ -663,21 +650,20 @@ QString MainWindow::generateRunDo(const QString &dir)
     QString tbModule = tbFile; tbModule.remove(".sv");
     QString vlogFiles = allFiles.join(" ");
 
-    // Resolve library deps for this project
     QStringList deps     = m_libMgr.projectDeps(dir);
-    QStringList libFlags = m_libMgr.linkFlags(deps);   // ["-L", "/path/db", ...]
+    QStringList libFlags = m_libMgr.linkFlags(deps);
     QString libFlagsStr  = libFlags.join(" ");
 
-    // Warn about any dep that isn't compiled yet
     for (const QString &dep : deps) {
         if (m_libMgr.hasLibrary(dep) && !m_libMgr.library(dep).compiled)
-            log(QString("<span style='color:#ffaa00'>⚠ Library \"%1\" is not compiled — open 📦 LIBRARIES and compile it.</span>").arg(dep));
+            log(QString("<span style='color:#ffaa00'>⚠ Library \"%1\" not compiled — open 📦 LIBRARIES.</span>").arg(dep));
     }
 
     QString content;
     QTextStream ts(&content);
+    ts << "# Questa run script — generated by MultiHD Launcher\n";
+    ts << "# " << QDateTime::currentDateTime().toString(Qt::ISODate) << "\n\n";
     ts << "quietly vlib work\n";
-    // Compile each library dep first so work can reference it
     for (const QString &dep : deps) {
         if (!m_libMgr.hasLibrary(dep)) continue;
         LibEntry le = m_libMgr.library(dep);
@@ -699,6 +685,167 @@ QString MainWindow::generateRunDo(const QString &dir)
         QTextStream out(&f); out << content; f.close();
     }
     return tbModule;
+}
+
+// ── generate Quartus files (.qpf / .qsf / .sdc) ──────────────────────────────
+void MainWindow::generateQuartusFiles(const QString &dir, const QStringList &active)
+{
+    QString projName = QDir(dir).dirName();
+    QString ts       = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    // ── .qpf ─────────────────────────────────────────────────────────────────
+    {
+        QFile f(dir + "/" + projName + ".qpf");
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "# Quartus Prime Project File\n";
+            s << "# Generated by MultiHD Launcher  " << ts << "\n\n";
+            s << "QUARTUS_VERSION = \"23.1\"\n";
+            s << "DATE = \"" << ts << "\"\n\n";
+            s << "PROJECT_REVISION = \"" << projName << "\"\n";
+        }
+    }
+    log(QString("<span style='color:#446688'>    ↳ %1/%2.qpf</span>").arg(dir).arg(projName));
+
+    // ── Determine top module (last non-tb file, or last if all are tb) ────────
+    QString topEntity;
+    for (const QString &f : active)
+        if (!f.endsWith("_tb.sv")) topEntity = f.chopped(3);
+    if (topEntity.isEmpty() && !active.isEmpty())
+        topEntity = active.last().chopped(3);
+
+    // ── .qsf ─────────────────────────────────────────────────────────────────
+    {
+        QFile f(dir + "/" + projName + ".qsf");
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "# Quartus Settings File\n";
+            s << "# Generated by MultiHD Launcher  " << ts << "\n\n";
+            s << "set_global_assignment -name FAMILY \"Cyclone V\"\n";
+            s << "set_global_assignment -name DEVICE AUTO\n";
+            s << "set_global_assignment -name TOP_LEVEL_ENTITY " << topEntity << "\n";
+            s << "set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files\n";
+            s << "set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0\n";
+            s << "set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85\n\n";
+            for (const QString &sv : active)
+                s << "set_global_assignment -name SYSTEMVERILOG_FILE " << sv << "\n";
+            s << "\n";
+            s << "set_global_assignment -name SDC_FILE " << projName << ".sdc\n";
+        }
+    }
+    log(QString("<span style='color:#446688'>    ↳ %1/%2.qsf</span>").arg(dir).arg(projName));
+
+    // ── .sdc (timing constraints template) ───────────────────────────────────
+    QString sdcPath = dir + "/" + projName + ".sdc";
+    if (!QFile::exists(sdcPath)) {
+        // Only write if there isn't one already (respect hand-edited files)
+        QFile f(sdcPath);
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "# Synopsys Design Constraints (.sdc)\n";
+            s << "# Generated by MultiHD Launcher  " << ts << "\n";
+            s << "# Adjust the clock period and port names to match your design.\n\n";
+            s << "# ── Primary clock ────────────────────────────────────────────────────────\n";
+            s << "create_clock -period 10.000 -name clk [get_ports clk]\n\n";
+            s << "# ── Derive clock uncertainty automatically ───────────────────────────────\n";
+            s << "derive_clock_uncertainty\n\n";
+            s << "# ── False paths for async reset / buttons (adjust as needed) ────────────\n";
+            s << "# set_false_path -from [get_ports rst_n] -to [all_registers]\n";
+        }
+        log(QString("<span style='color:#446688'>    ↳ %1/%2.sdc  (new template)</span>").arg(dir).arg(projName));
+    } else {
+        log(QString("<span style='color:#334455'>    ↳ %1/%2.sdc  (exists — not overwritten)</span>").arg(dir).arg(projName));
+    }
+
+    // ── output_files/ directory ───────────────────────────────────────────────
+    QDir(dir).mkpath("output_files");
+    log(QString("<span style='color:#446688'>    ↳ %1/output_files/  (created)</span>").arg(dir));
+}
+
+// ── generate Gowin files (.gprj / .cst / .f) ─────────────────────────────────
+// Returns false if the user cancelled the CST dialog.
+bool MainWindow::generateGowinFiles(const QString &dir, const QStringList &active)
+{
+    QString projName = QDir(dir).dirName();
+    QString ts       = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    // ── Determine top-module .sv file ─────────────────────────────────────────
+    QString topSv;
+    for (const QString &f : active)
+        if (!f.endsWith("_tb.sv")) topSv = dir + "/" + f;
+    if (topSv.isEmpty() && !active.isEmpty())
+        topSv = dir + "/" + active.last();
+
+    // ── Open CST dialog ───────────────────────────────────────────────────────
+    GowinCstDialog cstDlg(dir, topSv, this);
+    if (cstDlg.exec() != QDialog::Accepted)
+        return false;                       // user cancelled
+
+    QString device = cstDlg.deviceName();
+    QString pn     = cstDlg.devicePn();
+    if (device.isEmpty()) { device = "GW1NR-LV9QN88PC6/I5"; pn = device; }
+
+    // ── .cst ─────────────────────────────────────────────────────────────────
+    {
+        QFile f(dir + "/" + projName + ".cst");
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << cstDlg.cstContent();
+        }
+    }
+    log(QString("<span style='color:#446688'>    ↳ %1/%2.cst</span>").arg(dir).arg(projName));
+
+    // ── .f  (Gowin simulation / compile file list) ────────────────────────────
+    {
+        QFile f(dir + "/" + projName + ".f");
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "// Gowin file list (.f)\n";
+            s << "// Generated by MultiHD Launcher  " << ts << "\n";
+            s << "// Pass this to vlog/iverilog with  -f " << projName << ".f\n\n";
+            s << "+incdir+.\n\n";
+            // Non-tb first, then tb
+            for (const QString &sv : active)
+                if (!sv.endsWith("_tb.sv"))
+                    s << "./" << sv << "\n";
+            for (const QString &sv : active)
+                if (sv.endsWith("_tb.sv"))
+                    s << "./" << sv << "\n";
+        }
+    }
+    log(QString("<span style='color:#446688'>    ↳ %1/%2.f</span>").arg(dir).arg(projName));
+
+    // ── .gprj ─────────────────────────────────────────────────────────────────
+    QString topEntity = QFileInfo(topSv).baseName();
+    {
+        QFile f(dir + "/" + projName + ".gprj");
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream s(&f);
+            s << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            s << "<!-- Gowin EDA project — generated by MultiHD Launcher  " << ts << " -->\n";
+            s << "<Project>\n";
+            s << "  <Template>FPGA</Template>\n";
+            s << "  <Version>5</Version>\n";
+            s << "  <Device name=\"" << device << "\" pn=\"" << pn << "\"/>\n";
+            s << "  <FileList>\n";
+            for (const QString &sv : active)
+                s << "    <File path=\"" << sv << "\" type=\"file.sv\" enable=\"true\"/>\n";
+            // Reference the CST file
+            s << "    <File path=\"" << projName << ".cst\" type=\"file.cst\" enable=\"true\"/>\n";
+            s << "  </FileList>\n";
+            s << "  <Synthesis>\n";
+            s << "    <TopModule>" << topEntity << "</TopModule>\n";
+            s << "  </Synthesis>\n";
+            s << "</Project>\n";
+        }
+    }
+    log(QString("<span style='color:#446688'>    ↳ %1/%2.gprj</span>").arg(dir).arg(projName));
+
+    // ── impl/ directory ───────────────────────────────────────────────────────
+    QDir(dir).mkpath("impl/pnr");
+    log(QString("<span style='color:#446688'>    ↳ %1/impl/pnr/  (created)</span>").arg(dir));
+
+    return true;
 }
 
 // ── launch (dispatcher) ───────────────────────────────────────────────────────
@@ -777,8 +924,6 @@ void MainWindow::launchForQuesta()
     proc->startDetached();
 
     log("<span style='color:#00ff88'>✓ [Questa] Launched!</span>");
-    // Only auto-close when Questa is the only target — keep window open if
-    // other tools are also being launched so their log output stays visible.
     if (!m_chkQuartus->isChecked() && !m_chkGowin->isChecked())
         QTimer::singleShot(1500, this, &QWidget::close);
 }
@@ -794,65 +939,32 @@ void MainWindow::launchForQuartus()
         return;
     }
 
-    log("<span style='color:#ffaa00'>◈ [Quartus] Generating Quartus project files...</span>");
+    log("<span style='color:#ffaa00'>◈ [Quartus] Generating project files...</span>");
+    generateQuartusFiles(dir, active);
+    log("<span style='color:#00ff88'>✓ [Quartus] Files written.</span>");
 
-    // ── 1. <project>.qpf ─────────────────────────────────────────────────────
-    QString projName = QDir(dir).dirName();
-    QString qpf = dir + "/" + projName + ".qpf";
-    {
-        QFile f(qpf);
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream s(&f);
-            s << "# Quartus Prime project file — generated by QuestaLauncher\n";
-            s << "QUARTUS_VERSION = \"23.1\"\n";
-            s << "DATE = \"" << QDateTime::currentDateTime().toString(Qt::ISODate) << "\"\n\n";
-            s << "PROJECT_REVISION = \"" << projName << "\"\n";
-        }
-    }
-
-    // ── 2. <project>.qsf ─────────────────────────────────────────────────────
-    QString qsf = dir + "/" + projName + ".qsf";
-    {
-        QFile f(qsf);
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream s(&f);
-            s << "# Quartus Settings File — generated by QuestaLauncher\n\n";
-            s << "set_global_assignment -name FAMILY \"Cyclone V\"\n";
-            s << "set_global_assignment -name DEVICE AUTO\n";
-            s << "set_global_assignment -name TOP_LEVEL_ENTITY " << active.last().chopped(3) << "\n\n";
-            for (const QString &sv : active)
-                s << "set_global_assignment -name SYSTEMVERILOG_FILE " << sv << "\n";
-        }
-    }
-
-    log(QString("<span style='color:#00ff88'>✓ [Quartus] Generated:</span>"));
-    log(QString("<span style='color:#446688'>    %1</span>").arg(qpf));
-    log(QString("<span style='color:#446688'>    %1</span>").arg(qsf));
-
-    // ── 3. Try to open Quartus if it's on PATH ────────────────────────────────
-    QSettings s("QuestaLauncher", "QuestaLauncher");
+    // Try to open Quartus if configured / on PATH
+    QSettings s("MultiHDLauncher", "MultiHDLauncher");
     QString quartusPath = s.value("quartusPath", "").toString();
-
     QString quartusExe;
     if (!quartusPath.isEmpty() && QFile::exists(quartusPath))
         quartusExe = quartusPath;
     else {
-        // Try to find quartus on PATH
         QProcess which;
         which.start("which", {"quartus"});
         which.waitForFinished(3000);
         QString found = QString::fromLocal8Bit(which.readAllStandardOutput()).trimmed();
-        if (!found.isEmpty() && QFile::exists(found))
-            quartusExe = found;
+        if (!found.isEmpty() && QFile::exists(found)) quartusExe = found;
     }
 
+    QString qpf = dir + "/" + QDir(dir).dirName() + ".qpf";
     if (!quartusExe.isEmpty()) {
         log("<span style='color:#ffaa00'>▶ [Quartus] Opening Quartus Prime...</span>");
         QProcess::startDetached(quartusExe, {qpf});
         log("<span style='color:#00ff88'>✓ [Quartus] Launched!</span>");
     } else {
-        log("<span style='color:#ffaa00'>⚠ [Quartus] quartus binary not found — project files written, open manually.</span>");
-        log("<span style='color:#446688'>  Set Quartus path in ⚙ CONFIG → Quartus binary to auto-launch.</span>");
+        log("<span style='color:#ffaa00'>⚠ [Quartus] quartus binary not found — files written, open manually.</span>");
+        log("<span style='color:#446688'>  Set Quartus path in ⚙ CONFIG → Quartus binary.</span>");
     }
 }
 
@@ -867,40 +979,17 @@ void MainWindow::launchForGowin()
         return;
     }
 
-    log("<span style='color:#88ff88'>◆ [Gowin] Generating Gowin project file...</span>");
-
-    QString projName = QDir(dir).dirName();
-
-    // ── <project>.gprj (Gowin IDE project XML) ────────────────────────────────
-    QString gprj = dir + "/" + projName + ".gprj";
-    {
-        QFile f(gprj);
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream s(&f);
-            s << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-            s << "<!-- Gowin EDA project — generated by QuestaLauncher -->\n";
-            s << "<Project>\n";
-            s << "  <Template>FPGA</Template>\n";
-            s << "  <Version>5</Version>\n";
-            s << "  <Device name=\"GW1NR-LV9QN88PC6/I5\" pn=\"GW1NR-LV9QN88PC6/I5\"/>\n";
-            s << "  <FileList>\n";
-            for (const QString &sv : active)
-                s << "    <File path=\"" << sv << "\" type=\"file.sv\" enable=\"true\"/>\n";
-            s << "  </FileList>\n";
-            s << "  <Synthesis>\n";
-            s << "    <TopModule>" << active.last().chopped(3) << "</TopModule>\n";
-            s << "  </Synthesis>\n";
-            s << "</Project>\n";
-        }
+    log("<span style='color:#88ff88'>◆ [Gowin] Opening constraint editor...</span>");
+    bool ok = generateGowinFiles(dir, active);
+    if (!ok) {
+        log("<span style='color:#cc6666'>✗ [Gowin] Cancelled — no files written.</span>");
+        return;
     }
+    log("<span style='color:#00ff88'>✓ [Gowin] Files written.</span>");
 
-    log(QString("<span style='color:#00ff88'>✓ [Gowin] Generated:</span>"));
-    log(QString("<span style='color:#446688'>    %1</span>").arg(gprj));
-
-    // ── Try to open Gowin IDE if configured ───────────────────────────────────
-    QSettings s("QuestaLauncher", "QuestaLauncher");
+    // Try to open Gowin IDE if configured / on PATH
+    QSettings s("MultiHDLauncher", "MultiHDLauncher");
     QString gowinPath = s.value("gowinPath", "").toString();
-
     QString gowinExe;
     if (!gowinPath.isEmpty() && QFile::exists(gowinPath))
         gowinExe = gowinPath;
@@ -909,17 +998,17 @@ void MainWindow::launchForGowin()
         which.start("which", {"gw_ide"});
         which.waitForFinished(3000);
         QString found = QString::fromLocal8Bit(which.readAllStandardOutput()).trimmed();
-        if (!found.isEmpty() && QFile::exists(found))
-            gowinExe = found;
+        if (!found.isEmpty() && QFile::exists(found)) gowinExe = found;
     }
 
+    QString gprj = dir + "/" + QDir(dir).dirName() + ".gprj";
     if (!gowinExe.isEmpty()) {
         log("<span style='color:#88ff88'>▶ [Gowin] Opening Gowin IDE...</span>");
         QProcess::startDetached(gowinExe, {gprj});
         log("<span style='color:#00ff88'>✓ [Gowin] Launched!</span>");
     } else {
-        log("<span style='color:#88ff88'>⚠ [Gowin] gw_ide not found — project file written, open manually.</span>");
-        log("<span style='color:#446688'>  Set Gowin path in ⚙ CONFIG → Gowin IDE binary to auto-launch.</span>");
+        log("<span style='color:#88ff88'>⚠ [Gowin] gw_ide not found — files written, open manually.</span>");
+        log("<span style='color:#446688'>  Set Gowin path in ⚙ CONFIG → Gowin IDE binary.</span>");
     }
 }
 

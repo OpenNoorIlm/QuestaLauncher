@@ -46,7 +46,7 @@ private:
     QPushButton *m_priorityBtn;
     QPushButton *m_configBtn;
     QPushButton *m_excludeBtn;
-    QPushButton *m_libBtn;          // opens LibraryDialog
+    QPushButton *m_libBtn;
     QPushButton *m_launchBtn;
     QTextEdit   *m_log;
     QLabel      *m_logoLabel;
@@ -74,7 +74,7 @@ private:
     QCheckBox *m_chkQuartus;
     QCheckBox *m_chkGowin;
 
-    // QSettings helpers
+    // QSettings helpers  (all stored under MultiHDLauncher organisation)
     QString settingVsim()          const;
     QString settingLicenseFile()   const;
     QString settingSaltServer()    const;
@@ -86,6 +86,12 @@ private:
 
     QStringList activeFiles(const QString &dir) const;
 
-    QString generateRunDo(const QString &dir);
-    void    log(const QString &msg);
+    // Per-tool file generators
+    QString generateRunDo(const QString &dir);                     // Questa
+    void    generateQuartusFiles(const QString &dir,               // Quartus
+                                 const QStringList &active);
+    bool    generateGowinFiles(const QString &dir,                 // Gowin
+                               const QStringList &active);
+
+    void log(const QString &msg);
 };
