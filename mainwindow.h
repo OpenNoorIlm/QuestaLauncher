@@ -15,6 +15,12 @@
 #include <QGroupBox>
 #include "librarymanager.h"
 #include <QCheckBox>
+// ── writer-b: launch-mode selector needs QComboBox ───────────────────────────
+#include <QComboBox>
+// ── writer-c: About/Help dialog (Feature C) ───────────────────────────────────
+#include "aboutdialog.h"
+// ── writer-a: conf.svconf model (Feature A) ──────────────────────────────────
+struct SvConf;   // forward-declared; full def lives in confdialog.h
 
 class MainWindow : public QMainWindow
 {
@@ -40,6 +46,12 @@ private slots:
     void installQuesta();
     void openLicenseRequest();
 
+    // ── writer-c: About/Help dialog (Feature C) ─────────────────────────────
+    void openAbout();
+
+    // ── writer-a: conf.svconf (Feature A) ─────────────────────────────────
+    void openConfDialog();
+
 private:
     QLineEdit   *m_pathEdit;
     QPushButton *m_browseBtn;
@@ -48,6 +60,10 @@ private:
     QPushButton *m_excludeBtn;
     QPushButton *m_libBtn;
     QPushButton *m_launchBtn;
+    // ── writer-a: ⚙ EDIT conf.svconf button ─────────────────────────────────
+    QPushButton *m_confBtn;
+    // ── writer-b: launch-mode selector (Run GUI / Run CLI / Show WaveForm) ────
+    QComboBox   *m_launchMode;
     QTextEdit   *m_log;
     QLabel      *m_logoLabel;
     QLabel      *m_subtitleLabel;
@@ -84,10 +100,15 @@ private:
     void updateLicenseStatus();
     void rebuildExcludedChips();
 
+    // ── writer-b: current launch mode ("gui" | "cli" | "wave") ───────────────
+    QString currentLaunchMode() const;
+
     QStringList activeFiles(const QString &dir) const;
 
     // Per-tool file generators
-    QString generateRunDo(const QString &dir);                     // Questa
+    // ── writer-b: added mode param ("gui"|"cli"), gui = Qt byte-parity ───────
+    QString generateRunDo(const QString &dir,
+                          const QString &mode = "gui");            // Questa
     void    generateQuartusFiles(const QString &dir,               // Quartus
                                  const QStringList &active);
     bool    generateGowinFiles(const QString &dir,                 // Gowin

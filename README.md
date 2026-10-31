@@ -38,6 +38,9 @@ Pick a folder, choose your target tool(s), hit **Launch** — done.
 | ✕ **Per-file exclusion** | Exclude individual `.sv` files; restore them any time |
 | ⚙ **Persistent configuration** | vsim/quartus/gowin paths, license file, env vars via `QSettings` |
 | 🔑 **License guard** | Blocks Questa launch and warns visually if license is not set |
+| ⚙ **conf.svconf** | Per-project config (compile mode all/list/N, `@tb`, `@priority`, `@topmodule`, `@vsimargs`, `@vlogargs`, `@work`) via **⚙ EDIT conf.svconf** |
+| 🎮 **Launch modes** | **Run GUI** / **Run CLI** (headless `-c`, `quit -f`) / **Show WaveForm** (open existing `vsim.wlf`) via the **🎮 LAUNCH MODE** selector |
+| ❓ **About dialog** | **❓ ABOUT** button — logo, feature list, Questa FSE & Intel licensing URLs |
 | ⬇ **Install helpers** | Direct links to Questa FSE download & Intel license portal |
 | 🎨 **Dark cyber theme** | Custom-painted grid overlay, glow effects, monospace font |
 
@@ -76,6 +79,37 @@ your board's schematic.
 | File | Purpose |
 |---|---|
 | `run.do` | Questa TCL script (`vlib`, `vlog`, `vopt`, `vsim`, `run -all`) |
+
+---
+
+## conf.svconf — per-project Questa config
+
+Each project folder can hold an optional `conf.svconf` controlling Questa compile behaviour.
+Open it from the app via **⚙ EDIT conf.svconf**, or create one by hand. Example:
+
+```
+# comment
+compile @(all) | compile @(list) | compile @(N)
+@tb (counter16_tb.sv)          # explicit testbench file
+@tb priority list:             # testbench order (compiled after all RTL)
+  - counter16_tb.sv
+@priority list encoder:        # RTL compile order (compiled first)
+  - byte_register.sv
+  - counter16.sv
+@topmodule: counter16_tb       # simulation top module
+@vsimargs: -voptargs=+acc
+@vlogargs: -sv
+@work: work
+```
+
+- `compile @(all)` compiles every active `.sv`; `@(list)` compiles only the listed files;
+  `@(N)` compiles the first `N` files of the priority list.
+- `@tb (file)` and `@tb priority list` control testbench compile order (the last `_tb.sv`
+  is chosen as the simulation top).
+- `@topmodule` overrides the detected top module used by `vopt`/`vsim`.
+- `@vsimargs` / `@vlogargs` / `@work` inject extra arguments / a custom work-library name.
+
+The conf **refines** the existing custom compile order + exclusions — it never replaces them.
 
 ---
 
@@ -162,6 +196,17 @@ QuestaLauncher/          ← repo root (name kept for URL continuity)
 ---
 
 ## Changelog
+
+### v1.3.0
+- **Version bumped to 1.3.0**
+- **⚙ conf.svconf support:** per-project config dialog via the new **⚙ EDIT conf.svconf**  
+  button — compile mode (`all`/`list`/`N`), `@tb` name, `@priority list`, `@tb priority list`,  
+  `@topmodule`, `@vsimargs`, `@vlogargs`, `@work`; fully integrated into Questa `run.do` generation
+- **🎮 Launch modes:** new **🎮 LAUNCH MODE** selector — **Run GUI** (current behaviour,  
+  `add wave`), **Run CLI** (headless `vsim -c`, `quit -f`, no waveform), **Show WaveForm**  
+  (opens the existing `vsim.wlf` without re-running the simulation)
+- **❓ About dialog:** new **❓ ABOUT** button showing the logo, feature list and the  
+  Questa FSE download / Intel licensing portal URLs
 
 ### v1.2.0 — MultiHDLauncher rename
 - **Renamed** from QuestaLauncher to MultiHDLauncher

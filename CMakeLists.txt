@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 # The project was renamed from QuestaLauncher to MultiHDLauncher.
 # Release archives keep their original titles for archival reference.
 # ─────────────────────────────────────────────────────────────────────────────
-project(MultiHDLauncher VERSION 1.2.0 LANGUAGES CXX)
+project(MultiHDLauncher VERSION 1.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,6 +29,10 @@ qt_add_executable(MultiHDLauncher
     librarydialog.cpp
     gowincstdialog.h
     gowincstdialog.cpp
+    confdialog.h
+    confdialog.cpp
+    aboutdialog.h
+    aboutdialog.cpp
     resources.qrc
 )
 

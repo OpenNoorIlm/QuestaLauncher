@@ -4,6 +4,8 @@
 #include "excludedialog.h"
 #include "librarydialog.h"
 #include "gowincstdialog.h"
+// ── writer-a: conf.svconf (Feature A) ────────────────────────────────────────
+#include "confdialog.h"
 #include <QFileDialog>
 #include <QDir>
 #include <QFile>
@@ -28,6 +30,8 @@
 #include <QScrollArea>
 #include <QLabel>
 #include <QCheckBox>
+// ── writer-b: launch-mode selector needs QComboBox ───────────────────────────
+#include <QComboBox>
 #include <QDateTime>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,6 +60,13 @@ static const QString STYLE = R"(
         padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
     }
     QPushButton#configBtn:hover { background-color: #aaaaff18; }
+    // ── writer-a: conf.svconf button (dark-cyber green) ─────────────────────
+    QPushButton#confBtn {
+        background-color: transparent; color: #00ff88;
+        border: 1px solid #00ff88; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#confBtn:hover { background-color: #00ff8818; }
     QPushButton#excludeBtn {
         background-color: transparent; color: #cc6666;
         border: 1px solid #cc4444; border-radius: 6px;
@@ -91,6 +102,13 @@ static const QString STYLE = R"(
         padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
     }
     QPushButton#installBtn:hover { background-color: #00ff8822; }
+    // ── writer-c: About button (Feature C) — cyan, like installBtn ─────────────
+    QPushButton#aboutBtn {
+        background-color: transparent; color: #00e5ff;
+        border: 1px solid #00e5ff; border-radius: 6px;
+        padding: 6px 14px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QPushButton#aboutBtn:hover { background-color: #00e5ff22; }
     QPushButton#licenseBtn {
         background-color: transparent; color: #bb88ff;
         border: 1px solid #bb88ff; border-radius: 6px;
@@ -108,6 +126,20 @@ static const QString STYLE = R"(
         background-color: #080812; color: #00e5ff;
         border: 1px solid #1a1a3a; border-radius: 6px;
         font-family: 'Courier New', monospace; font-size: 11px; padding: 6px;
+    }
+    QComboBox#launchMode {
+        background-color: #131326; color: #00e5ff;
+        border: 1px solid #00e5ff; border-radius: 6px;
+        padding: 4px 10px; font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    QComboBox#launchMode::drop-down {
+        subcontrol-origin: padding; subcontrol-position: top right;
+        width: 22px; border-left: 1px solid #1a1a3a; border-radius: 0 6px 6px 0;
+    }
+    QComboBox#launchMode QAbstractItemView {
+        background-color: #0d0d1a; color: #00e5ff;
+        border: 1px solid #00e5ff; selection-background-color: #004466;
+        font-family: 'Courier New', monospace; font-size: 12px;
     }
     QLabel#subtitle {
         color: #446688; font-size: 10px;
@@ -399,10 +431,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_libBtn->setObjectName("libBtn");
     m_libBtn->setFixedHeight(34);
 
+    // ── writer-a: ⚙ EDIT conf.svconf button ───────────────────────────────────
+    m_confBtn = new QPushButton("⚙   EDIT conf.svconf");
+    m_confBtn->setObjectName("confBtn");
+    m_confBtn->setFixedHeight(34);
+
     actionRow->addWidget(m_priorityBtn);
     actionRow->addWidget(m_excludeBtn);
     actionRow->addWidget(m_libBtn);
     actionRow->addWidget(m_configBtn);
+    // ── writer-a: conf.svconf button sits right after CONFIG ──────────────────
+    actionRow->addWidget(m_confBtn);
     layout->addLayout(actionRow);
 
     // ── COMPILE FOR section ───────────────────────────────────────────────────
@@ -428,6 +467,22 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     cfRow->addStretch();
     layout->addWidget(compileForBox);
 
+    // ── writer-b: launch-mode selector (Run GUI / Run CLI / Show WaveForm) ────
+    QHBoxLayout *modeRow = new QHBoxLayout();
+    modeRow->setSpacing(8);
+    QLabel *modeLbl = new QLabel("🎮 LAUNCH MODE");
+    modeLbl->setStyleSheet("color: #00e5ff; font-family: 'Courier New'; font-size: 13px;");
+    m_launchMode = new QComboBox();
+    m_launchMode->setObjectName("launchMode");
+    m_launchMode->setFixedHeight(34);
+    m_launchMode->addItem("Run GUI");       // index 0 = default
+    m_launchMode->addItem("Run CLI");
+    m_launchMode->addItem("Show WaveForm");
+    m_launchMode->setCurrentIndex(0);
+    modeRow->addWidget(modeLbl);
+    modeRow->addWidget(m_launchMode, 1);
+    layout->addLayout(modeRow);
+
     // Launch button
     m_launchBtn = new QPushButton("▶   LAUNCH");
     m_launchBtn->setObjectName("launchBtn");
@@ -452,6 +507,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_licenseBtn->setFixedHeight(34);
     instRow->addWidget(m_installBtn);
     instRow->addWidget(m_licenseBtn);
+
+    // ── writer-c: About/Help dialog (Feature C) ─────────────────────────────────
+    QPushButton *aboutBtn = new QPushButton("❓   ABOUT");
+    aboutBtn->setObjectName("aboutBtn");
+    aboutBtn->setFixedHeight(34);
+    instRow->addWidget(aboutBtn);
+
     layout->addWidget(installBox);
 
     // Log
@@ -465,9 +527,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(m_excludeBtn,  &QPushButton::clicked, this, &MainWindow::openExcludeDialog);
     connect(m_libBtn,      &QPushButton::clicked, this, &MainWindow::openLibraryManager);
     connect(m_configBtn,   &QPushButton::clicked, this, &MainWindow::openConfig);
+    // ── writer-a: conf.svconf button ──────────────────────────────────────────
+    connect(m_confBtn,     &QPushButton::clicked, this, &MainWindow::openConfDialog);
     connect(m_launchBtn,   &QPushButton::clicked, this, &MainWindow::launch);
     connect(m_installBtn,  &QPushButton::clicked, this, &MainWindow::installQuesta);
     connect(m_licenseBtn,  &QPushButton::clicked, this, &MainWindow::openLicenseRequest);
+    // ── writer-c: About/Help dialog (Feature C) ─────────────────────────────────
+    connect(aboutBtn,      &QPushButton::clicked, this, &MainWindow::openAbout);
 
     connect(m_pathEdit, &QLineEdit::textChanged, this, [this](){
         if (!m_excludedFiles.isEmpty()) {
@@ -567,6 +633,47 @@ void MainWindow::openConfig()
     }
 }
 
+// ── writer-a: ⚙ EDIT conf.svconf (Feature A) ─────────────────────────────────
+// Open the conf.svconf editor for the current project folder. If the file does
+// not exist yet, prompt to create a template first (mirrors the extension).
+void MainWindow::openConfDialog()
+{
+    QString dir = m_pathEdit->text().trimmed();
+    if (dir.isEmpty() || !QDir(dir).exists()) {
+        QMessageBox::warning(this, "Error", "Please select a project folder first.");
+        return;
+    }
+
+    const QString confPath = confPathForProject(dir);
+
+    // If conf.svconf is missing, offer to create a template (mirrors extension editConf).
+    if (!QFile::exists(confPath)) {
+        int r = QMessageBox::question(this, "conf.svconf",
+            "No conf.svconf found in this project folder.\n\n"
+            "Create a template to get started?",
+            QMessageBox::Yes | QMessageBox::Cancel);
+        if (r != QMessageBox::Yes) return;
+
+        // ── writer-a: write a fresh template so the editor opens populated ─────
+        QStringList allBases;
+        const QStringList all = QDir(dir).entryList(QStringList() << "*.sv", QDir::Files);
+        for (const QString &f : all) if (!f.startsWith('.')) allBases << f;
+        allBases.sort();
+        QString openedBase = allBases.isEmpty() ? QString() : allBases.first();
+        QFile tf(confPath);
+        if (tf.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream to(&tf);
+            to << defaultConfTemplate(openedBase, allBases);
+            tf.close();
+        }
+    }
+
+    ConfDialog dlg(dir, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        log("<span style='color:#00e5ff'>⚙ conf.svconf saved.</span>");
+    }
+}
+
 // ── priority dialog ───────────────────────────────────────────────────────────
 void MainWindow::openPriorityDialog()
 {
@@ -621,9 +728,17 @@ void MainWindow::openLibraryManager()
 }
 
 // ── generate run.do (Questa) ──────────────────────────────────────────────────
-QString MainWindow::generateRunDo(const QString &dir)
+// ── writer-b: added `mode` param ("gui"|"cli"); gui keeps Qt byte-parity ─────
+QString MainWindow::generateRunDo(const QString &dir, const QString &mode)
 {
+    // ── writer-a: conf.svconf (Feature A) — parse the per-project config ───────
+    SvConf conf = parseConf(confPathForProject(dir));
+    const QString workLib = conf.workLib.isEmpty() ? "work" : conf.workLib;
+
+    // ── compile order: conf priority list refines; custom order + exclusion win ─
     QStringList allFiles;
+    const QStringList priorityList = conf.priorityList;
+    const QStringList tbPriorityList = conf.tbPriorityList;
 
     if (!m_customOrder.isEmpty()) {
         for (const QString &f : m_customOrder)
@@ -632,12 +747,49 @@ QString MainWindow::generateRunDo(const QString &dir)
         QStringList active = activeFiles(dir);
         if (active.isEmpty()) return QString();
 
-        QStringList tbFiles, otherFiles;
-        for (const QString &f : active) {
-            if (f.endsWith("_tb.sv")) tbFiles  << f;
-            else                      otherFiles << f;
+        // Apply conf @compile mode: all / list / N.
+        QString compileMode = conf.compileMode.trimmed().toLower();
+        if (compileMode == "list") {
+            // compile only files in the conf priority list (that exist & not excluded)
+            for (const QString &f : priorityList) {
+                if (active.contains(f) && !m_excludedFiles.contains(f))
+                    allFiles << f;
+            }
+        } else if (compileMode.toInt()) {
+            // compile @(N) — first N files of the priority list
+            int n = compileMode.toInt();
+            int cnt = 0;
+            for (const QString &f : priorityList) {
+                if (cnt >= n) break;
+                if (active.contains(f) && !m_excludedFiles.contains(f)) {
+                    allFiles << f; ++cnt;
+                }
+            }
+        } else {
+            // "all" (default): non-_tb first (alpha), then _tb (alpha); but honour
+            // conf @priority list / @tb priority list / @tb (name) refinements.
+            QStringList tbFiles, otherFiles;
+            for (const QString &f : active) {
+                if (f.endsWith("_tb.sv")) tbFiles  << f;
+                else                      otherFiles << f;
+            }
+            // order RTL by conf priority list (listed first), then the rest
+            QStringList orderedRtl;
+            for (const QString &f : priorityList)
+                if (otherFiles.contains(f)) orderedRtl << f;
+            for (const QString &f : otherFiles)
+                if (!orderedRtl.contains(f)) orderedRtl << f;
+            // order TB by conf tb priority list, then @tb (name) last, then rest
+            QStringList orderedTb;
+            for (const QString &f : tbPriorityList)
+                if (tbFiles.contains(f)) orderedTb << f;
+            const QString confTb = conf.tbName.trimmed();
+            if (!confTb.isEmpty() && tbFiles.contains(confTb) && !orderedTb.contains(confTb))
+                orderedTb << confTb;
+            for (const QString &f : tbFiles)
+                if (!orderedTb.contains(f)) orderedTb << f;
+            allFiles = orderedRtl + orderedTb;
         }
-        allFiles = otherFiles + tbFiles;
     }
 
     if (allFiles.isEmpty()) return QString();
@@ -647,7 +799,11 @@ QString MainWindow::generateRunDo(const QString &dir)
         if (f.endsWith("_tb.sv")) tbFile = f;
     if (tbFile.isEmpty()) tbFile = allFiles.last();
 
-    QString tbModule = tbFile; tbModule.remove(".sv");
+    // ── writer-a: @topmodule overrides the detected top module stem ────────────
+    QString tbModule = conf.topModule.trimmed();
+    if (tbModule.isEmpty()) {
+        tbModule = tbFile; tbModule.remove(".sv");
+    }
     QString vlogFiles = allFiles.join(" ");
 
     QStringList deps     = m_libMgr.projectDeps(dir);
@@ -663,7 +819,7 @@ QString MainWindow::generateRunDo(const QString &dir)
     QTextStream ts(&content);
     ts << "# Questa run script — generated by MultiHD Launcher\n";
     ts << "# " << QDateTime::currentDateTime().toString(Qt::ISODate) << "\n\n";
-    ts << "quietly vlib work\n";
+    ts << "quietly vlib " << workLib << "\n";
     for (const QString &dep : deps) {
         if (!m_libMgr.hasLibrary(dep)) continue;
         LibEntry le = m_libMgr.library(dep);
@@ -672,13 +828,23 @@ QString MainWindow::generateRunDo(const QString &dir)
         for (const QString &f : depSv) depPaths << (le.sourcePath + "/" + f);
         ts << "vlog -work " << m_libMgr.workDbPath(dep) << " " << depPaths.join(" ") << "\n";
     }
-    ts << "vlog -work work " << (libFlagsStr.isEmpty() ? "" : libFlagsStr + " ") << vlogFiles << "\n";
+    // ── writer-a: @vlogargs injected after `-work <lib>` (mirrors extension) ───
+    const QString vlogArgs = conf.vlogArgs.trimmed();
+    ts << "vlog -work " << workLib << " "
+       << (vlogArgs.isEmpty() ? "" : vlogArgs + " ")
+       << (libFlagsStr.isEmpty() ? "" : libFlagsStr + " ") << vlogFiles << "\n";
     ts << "vopt +acc" << (libFlagsStr.isEmpty() ? "" : " " + libFlagsStr)
-       << " work." << tbModule << " -o " << tbModule << "_opt\n";
-    ts << "vsim" << (libFlagsStr.isEmpty() ? "" : " " + libFlagsStr)
+       << " " << workLib << "." << tbModule << " -o " << tbModule << "_opt\n";
+    // ── writer-a: @vsimargs injected after `vsim` (mirrors extension) ──────────
+    const QString vsimArgs = conf.vsimArgs.trimmed();
+    ts << "vsim"
+       << (vsimArgs.isEmpty() ? "" : " " + vsimArgs)
+       << (libFlagsStr.isEmpty() ? "" : " " + libFlagsStr)
        << " " << tbModule << "_opt\n";
-    ts << "add wave -r /*\n";
+    // ── writer-b: GUI keeps `add wave -r /*`; CLI is headless with `quit -f` ──
+    if (mode != "cli") ts << "add wave -r /*\n";
     ts << "run -all\n";
+    if (mode == "cli") ts << "quit -f\n";
 
     QFile f(dir + "/run.do");
     if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -848,6 +1014,17 @@ bool MainWindow::generateGowinFiles(const QString &dir, const QStringList &activ
     return true;
 }
 
+// ── writer-b: map the combo selection to a mode string ("gui"|"cli"|"wave") ──
+QString MainWindow::currentLaunchMode() const
+{
+    if (!m_launchMode) return "gui";                 // safe fallback = default
+    switch (m_launchMode->currentIndex()) {
+        case 1: return "cli";
+        case 2: return "wave";
+        default: return "gui";
+    }
+}
+
 // ── launch (dispatcher) ───────────────────────────────────────────────────────
 void MainWindow::launch()
 {
@@ -869,10 +1046,64 @@ void MainWindow::launch()
 }
 
 // ── Questa ────────────────────────────────────────────────────────────────────
+// ── writer-b: branches on the selected launch mode (Run GUI / Run CLI / ───────
+// ──            Show WaveForm), mirroring the extension's flow logic ──────────
 void MainWindow::launchForQuesta()
 {
-    QString dir = m_pathEdit->text().trimmed();
+    QString dir  = m_pathEdit->text().trimmed();
+    QString mode = currentLaunchMode();          // "gui" | "cli" | "wave"
 
+    // ── Show WaveForm: do NOT re-run the simulation ────────────────────────────
+    if (mode == "wave") {
+        QString wlf = dir + "/vsim.wlf";
+        if (!QFile::exists(wlf)) {
+            QMessageBox::information(this, "No Waveform",
+                "No vsim.wlf found in this directory.\n"
+                "Run a simulation first (Run CLI or Run GUI) to generate the waveform file.");
+            return;
+        }
+
+        // Write a small wave.do (mirrors the extension Show WaveForm flow).
+        QFile waveDoFile(dir + "/wave.do");
+        if (waveDoFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream w(&waveDoFile);
+            w << "# wave.do — generated by MultiHD Launcher (Show WaveForm)\n";
+            w << "add wave -r /*\n";
+            w << "wave zoom full\n";
+            waveDoFile.close();
+        }
+
+        log("<span style='color:#00e5ff'>〰 [Questa] Opening waveform viewer...</span>");
+        log(QString("<span style='color:#446688'>  wlf:     %1</span>").arg(wlf));
+        log(QString("<span style='color:#446688'>  wave.do: %1/wave.do</span>").arg(dir));
+
+        QString vsim    = settingVsim();
+        QString lic     = settingLicenseFile();
+        QString salt    = settingSaltServer();
+        QString mtiMode = settingMtiVcoMode();
+
+        QStringList viewArgs = {"-view", wlf, "-do", dir + "/wave.do"};
+
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert("PATH", QFileInfo(vsim).absolutePath() + ":" + env.value("PATH"));
+        env.insert("LM_LICENSE_FILE",     lic);
+        env.insert("SALT_LICENSE_SERVER", salt.isEmpty() ? lic : salt);
+        env.insert("MTI_VCO_MODE",        mtiMode.isEmpty() ? "64" : mtiMode);
+
+        QProcess *proc = new QProcess(this);
+        proc->setProcessEnvironment(env);
+        proc->setWorkingDirectory(dir);
+        proc->setProgram(vsim);
+        proc->setArguments(viewArgs);
+        proc->startDetached();
+
+        log("<span style='color:#00ff88'>✓ [Questa] WaveForm viewer launched!</span>");
+        if (!m_chkQuartus->isChecked() && !m_chkGowin->isChecked())
+            QTimer::singleShot(1500, this, &QWidget::close);
+        return;
+    }
+
+    // ── Run GUI / Run CLI: the simulator actually runs ────────────────────────
     QString licPath = settingLicenseFile();
     if (licPath.isEmpty() || !QFile::exists(licPath)) {
         log("<span style='color:#ff4444'>✗ [Questa] BLOCKED: License file not configured or not found!</span>");
@@ -888,8 +1119,9 @@ void MainWindow::launchForQuesta()
         log(QString("<span style='color:#cc6666'>✕ %1 file(s) excluded from this run.</span>")
                 .arg(m_excludedFiles.size()));
 
+    QString runDoMode = (mode == "cli") ? "cli" : "gui";
     log("<span style='color:#00e5ff'>⬡ [Questa] Generating run.do...</span>");
-    QString tb = generateRunDo(dir);
+    QString tb = generateRunDo(dir, runDoMode);
     if (tb.isEmpty()) {
         log("<span style='color:#ff4444'>✗ [Questa] No simulation files remaining after exclusions!</span>");
         QMessageBox::critical(this, "Error",
@@ -906,9 +1138,15 @@ void MainWindow::launchForQuesta()
 
     log(QString("<span style='color:#446688'>  vsim:    %1</span>").arg(vsim));
     log(QString("<span style='color:#446688'>  license: %1</span>").arg(lic));
-    log("<span style='color:#00e5ff'>▶ [Questa] Launching...</span>");
+    log(QString("<span style='color:#00e5ff'>▶ [Questa] Launching (%1)...</span>").arg(runDoMode));
 
-    QStringList vsimArgs = {"-gui", "-do", QString("cd %1; do %1/run.do").arg(dir)};
+    // ── writer-b: Run CLI uses -c (headless); Run GUI keeps -gui (current) ───
+    QStringList vsimArgs;
+    if (mode == "cli") {
+        vsimArgs = {"-c", "-do", QString("cd %1; do %1/run.do").arg(dir)};
+    } else {
+        vsimArgs = {"-gui", "-do", QString("cd %1; do %1/run.do").arg(dir)};
+    }
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert("PATH", QFileInfo(vsim).absolutePath() + ":" + env.value("PATH"));
@@ -1026,6 +1264,13 @@ void MainWindow::openLicenseRequest()
     log("<span style='color:#bb88ff'>🔑 Opening license request page...</span>");
     QDesktopServices::openUrl(QUrl(
         "https://licensing.intel.com/psg/s/sales-signup-evaluationlicenses"));
+}
+
+// ── writer-c: About/Help dialog (Feature C) ───────────────────────────────────
+void MainWindow::openAbout()
+{
+    AboutDialog dlg(this);
+    dlg.exec();
 }
 
 void MainWindow::log(const QString &msg)
